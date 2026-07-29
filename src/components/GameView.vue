@@ -4,7 +4,7 @@ import {
   PhArrowRight, PhArrowUUpLeft, PhFlowerTulip, PhHouseLine, PhLightbulb,
   PhPersonSimpleWalk, PhShuffleAngular, PhStar, PhTarget,
 } from '@phosphor-icons/vue'
-import { TILE_META, WARM_WORDS } from '../data'
+import { publicAsset, TILE_META, WARM_WORDS } from '../data'
 import { garden, recordAttempt, recordSuccess } from '../composables/useGarden'
 import { useMatchGame } from '../composables/useMatchGame'
 
@@ -18,6 +18,7 @@ const goalLeft = computed(() => Math.max(0, game.target.value - game.collectedTo
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
 const successFlower = TILE_META.peach.image
 const retryFlower = TILE_META.berry.image
+const bloomSpirit = publicAsset('assets/effects/bloom-spirit-v3.png')
 
 watch(game.status, (status) => {
   if (status === 'playing' || resultRecorded.value) return
@@ -86,15 +87,14 @@ function previewLoss() {
           :class="`feedback-${game.feedback.value.tier}`"
           role="status"
         >
+          <img class="feedback-spirit" :src="bloomSpirit" alt="" />
           <span>{{ game.feedback.value.text }}</span>
-          <div class="petal-sprinkle" aria-hidden="true">
-            <i v-for="petal in 8" :key="petal"></i>
-          </div>
         </div>
       </Transition>
 
       <Transition name="completion">
         <div v-if="game.completionMessage.value" class="completion-message" role="status">
+          <img :src="bloomSpirit" alt="" />
           <span>小院今日札记</span>
           <strong>{{ game.completionMessage.value }}</strong>
         </div>

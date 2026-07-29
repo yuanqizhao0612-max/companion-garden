@@ -4,11 +4,13 @@ import {
   PhArrowRight, PhFlower, PhHouseLine, PhPath, PhPlant, PhTree, PhUserCircle,
 } from '@phosphor-icons/vue'
 import { garden } from '../composables/useGarden'
+import { publicAsset } from '../data'
 import GardenScene from './GardenScene.vue'
 
 defineEmits<{ play: []; home: [] }>()
 const previewStage = ref<number | undefined>()
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
+const companionPortrait = publicAsset('assets/scenes/garden-companion-reference-v3.jpg')
 const nextGrowth = computed(() => {
   if (garden.completedRounds < 2) return `再完成 ${2 - garden.completedRounds} 局，小院会更茂盛`
   if (garden.houseStage < 3) return `再完成 ${4 - (garden.completedRounds % 4)} 局，小屋会升级`
@@ -32,9 +34,9 @@ function chooseAvatar(styleId: string) {
       <div class="scene-badge"><PhPlant weight="fill" /><span>成长第 {{ garden.gardenLevel }} 阶段</span></div>
     </div>
 
-    <div class="growth-card">
-      <span><PhPlant weight="fill" /></span>
-      <div><strong>今天的小院有了新变化</strong><p>{{ nextGrowth }}</p></div>
+    <div class="growth-card companion-growth-card">
+      <span class="companion-medallion"><img :src="companionPortrait" alt="柔软花朵造型的花园伙伴" /></span>
+      <div><small>花园伙伴</small><strong>今天的小院有了新变化</strong><p>{{ nextGrowth }}</p></div>
     </div>
 
     <div class="garden-stats">
