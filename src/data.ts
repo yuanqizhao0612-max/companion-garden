@@ -15,11 +15,11 @@ export const WARM_WORDS = [
 ]
 
 export const TILE_META: Record<TileKind, { symbol: string; name: string; color: string; image: string }> = {
-  peach: { symbol: '✿', name: '樱花', color: '#e98791', image: publicAsset('assets/flowers/cherry.png') },
-  daisy: { symbol: '❀', name: '向日葵', color: '#e2a52f', image: publicAsset('assets/flowers/sunflower.png') },
-  leaf: { symbol: '◆', name: '紫郁金香', color: '#a169bf', image: publicAsset('assets/flowers/purple-tulip.png') },
-  berry: { symbol: '●', name: '玫瑰', color: '#d84b64', image: publicAsset('assets/flowers/rose.png') },
-  bell: { symbol: '♢', name: '珊瑚郁金香', color: '#e97d70', image: publicAsset('assets/flowers/coral-tulip.png') },
+  peach: { symbol: '✿', name: '玫瑰', color: '#e54f6d', image: publicAsset('assets/flowers/rose-v2.svg') },
+  daisy: { symbol: '☀', name: '向日葵', color: '#e8a91f', image: publicAsset('assets/flowers/sunflower-v2.svg') },
+  leaf: { symbol: '♠', name: '郁金香', color: '#9a55bd', image: publicAsset('assets/flowers/tulip-v2.svg') },
+  berry: { symbol: '✣', name: '雏菊', color: '#d7d4c8', image: publicAsset('assets/flowers/daisy-v2.svg') },
+  bell: { symbol: '●', name: '绣球', color: '#4b9fc7', image: publicAsset('assets/flowers/hydrangea-v2.svg') },
 }
 
 export const TILE_KINDS = Object.keys(TILE_META) as TileKind[]

@@ -4,7 +4,7 @@ import {
   PhArrowRight, PhArrowUUpLeft, PhFlowerTulip, PhHouseLine, PhLightbulb,
   PhPersonSimpleWalk, PhShuffleAngular, PhStar, PhTarget,
 } from '@phosphor-icons/vue'
-import { publicAsset, TILE_META, WARM_WORDS } from '../data'
+import { TILE_META, WARM_WORDS } from '../data'
 import { garden, recordAttempt, recordSuccess } from '../composables/useGarden'
 import { useMatchGame } from '../composables/useMatchGame'
 
@@ -16,8 +16,8 @@ const newHighest = ref(false)
 const warmWord = ref(WARM_WORDS[Math.floor(Math.random() * WARM_WORDS.length)])
 const goalLeft = computed(() => Math.max(0, game.target.value - game.collectedTotal.value))
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
-const successFlower = publicAsset('assets/flowers/cherry.png')
-const retryFlower = publicAsset('assets/flowers/daisy.png')
+const successFlower = TILE_META.peach.image
+const retryFlower = TILE_META.berry.image
 
 watch(game.status, (status) => {
   if (status === 'playing' || resultRecorded.value) return
@@ -71,7 +71,35 @@ function previewLoss() {
 
     <p class="game-message" aria-live="polite">{{ game.message.value }}</p>
 
-    <div class="game-board-shell">
+    <div
+      class="game-board-shell"
+      :class="{
+        completing: Boolean(game.completionMessage.value),
+        'five-glow': game.feedback.value?.tier === 'five',
+      }"
+    >
+      <Transition name="feedback-pop">
+        <div
+          v-if="game.feedback.value"
+          :key="game.feedback.value.id"
+          class="match-feedback"
+          :class="`feedback-${game.feedback.value.tier}`"
+          role="status"
+        >
+          <span>{{ game.feedback.value.text }}</span>
+          <div class="petal-sprinkle" aria-hidden="true">
+            <i v-for="petal in 8" :key="petal"></i>
+          </div>
+        </div>
+      </Transition>
+
+      <Transition name="completion">
+        <div v-if="game.completionMessage.value" class="completion-message" role="status">
+          <span>小院今日札记</span>
+          <strong>{{ game.completionMessage.value }}</strong>
+        </div>
+      </Transition>
+
       <div class="game-board" :class="{ busy: game.busy.value }" aria-label="六乘六花朵棋盘">
         <button
           v-for="(tile, index) in game.board.value"
@@ -79,8 +107,16 @@ function previewLoss() {
           class="tile"
           :class="[
             `tile-${tile.kind}`, tile.special ? `special-${tile.special}` : '',
-            { selected: game.selected.value === index, removing: tile.removing, obstacle: tile.obstacle, covered: tile.cover }
+            {
+              selected: game.selected.value === index,
+              removing: tile.removing,
+              obstacle: tile.obstacle,
+              covered: tile.cover,
+              invalid: game.invalidTiles.value.includes(index),
+              swapping: game.swappingTiles.value.includes(index),
+            }
           ]"
+          :data-kind="tile.kind"
           :aria-label="tile.obstacle ? `石块，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列` : `${TILE_META[tile.kind].name}，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列`"
           @click="game.choose(index)"
         >
@@ -111,17 +147,17 @@ function previewLoss() {
       <section class="result-card" role="dialog" aria-modal="true" :aria-labelledby="game.status.value === 'goalReached' ? 'win-title' : 'complete-title'">
         <img class="result-flower" :src="game.status.value === 'goalReached' ? successFlower : retryFlower" alt="" />
         <template v-if="game.status.value === 'goalReached'">
-          <p class="result-kicker">花园里又添了一朵新花</p>
-          <h2 id="win-title">完成第 {{ playedLevel }} 关</h2>
-          <p>{{ warmWord }}</p>
+          <p class="result-kicker">今天的小院照顾好了</p>
+          <h2 id="win-title">又开了一片花</h2>
+          <p>{{ warmWord }}，第 {{ playedLevel }} 次照料完成。</p>
           <span v-if="newHighest" class="new-record"><PhStar weight="fill" />新的最高纪录</span>
           <button class="primary-action compact" @click="startLevel(garden.currentLevel)">下一关<PhArrowRight /></button>
           <button class="secondary-result" @click="emit('garden')"><PhHouseLine weight="fill" />看看花园</button>
         </template>
         <template v-else>
-          <p class="result-kicker">这一局走完了</p>
-          <h2 id="complete-title">还差 {{ goalLeft }} 朵花</h2>
-          <p>换一种走法，再试一次。</p>
+          <p class="result-kicker">今天的小院还在等你</p>
+          <h2 id="complete-title">还差一点点</h2>
+          <p>还差 {{ goalLeft }} 朵花，换一种走法看看。</p>
           <button class="primary-action compact" @click="startLevel(playedLevel)">再试一次<PhArrowRight /></button>
         </template>
         <button class="text-button" @click="emit('home')">回到首页</button>
