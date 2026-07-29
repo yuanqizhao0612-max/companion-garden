@@ -4,7 +4,7 @@ import {
   PhArrowRight, PhArrowUUpLeft, PhFlowerTulip, PhHouseLine, PhLightbulb,
   PhPersonSimpleWalk, PhShuffleAngular, PhStar, PhTarget,
 } from '@phosphor-icons/vue'
-import { TILE_META, WARM_WORDS } from '../data'
+import { publicAsset, TILE_META, WARM_WORDS } from '../data'
 import { garden, recordAttempt, recordSuccess } from '../composables/useGarden'
 import { useMatchGame } from '../composables/useMatchGame'
 
@@ -16,6 +16,8 @@ const newHighest = ref(false)
 const warmWord = ref(WARM_WORDS[Math.floor(Math.random() * WARM_WORDS.length)])
 const goalLeft = computed(() => Math.max(0, game.target.value - game.collectedTotal.value))
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
+const successFlower = publicAsset('assets/flowers/cherry.png')
+const retryFlower = publicAsset('assets/flowers/daisy.png')
 
 watch(game.status, (status) => {
   if (status === 'playing' || resultRecorded.value) return
@@ -107,7 +109,7 @@ function previewLoss() {
 
     <div v-if="game.status.value !== 'playing'" class="modal-backdrop">
       <section class="result-card" role="dialog" aria-modal="true" :aria-labelledby="game.status.value === 'goalReached' ? 'win-title' : 'complete-title'">
-        <img class="result-flower" :src="game.status.value === 'goalReached' ? '/assets/flowers/cherry.png' : '/assets/flowers/daisy.png'" alt="" />
+        <img class="result-flower" :src="game.status.value === 'goalReached' ? successFlower : retryFlower" alt="" />
         <template v-if="game.status.value === 'goalReached'">
           <p class="result-kicker">花园里又添了一朵新花</p>
           <h2 id="win-title">完成第 {{ playedLevel }} 关</h2>

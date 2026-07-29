@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { publicAsset } from '../data'
 import type { GardenState } from '../types'
 
 const props = defineProps<{ state: GardenState; compact?: boolean; previewStage?: number }>()
 const stage = computed(() => props.previewStage ?? props.state.gardenLevel)
 const scene = computed(() => {
-  if (stage.value >= 5) return '/assets/scenes/garden-stage-5.jpg'
-  if (stage.value >= 3) return '/assets/scenes/garden-stage-3.jpg'
-  return '/assets/scenes/garden-stage-1.jpg'
+  if (stage.value >= 5) return publicAsset('assets/scenes/garden-stage-5.jpg')
+  if (stage.value >= 3) return publicAsset('assets/scenes/garden-stage-3.jpg')
+  return publicAsset('assets/scenes/garden-stage-1.jpg')
 })
 </script>
 

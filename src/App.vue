@@ -4,6 +4,7 @@ import { PhFlowerLotus, PhGearSix, PhMoonStars, PhSun, PhX } from '@phosphor-ico
 import HomeView from './components/HomeView.vue'
 import GameView from './components/GameView.vue'
 import GardenView from './components/GardenView.vue'
+import { publicAsset } from './data'
 import type { Page } from './types'
 import { resetTrialData } from './composables/useGarden'
 
@@ -12,6 +13,7 @@ const settingsOpen = ref(false)
 const softMode = ref(localStorage.getItem('companion-garden-soft-mode') === 'true')
 const pageTitle = computed(() => ({ home: '陪伴花园', game: '花朵对对碰', garden: '我的家庭小院' })[page.value])
 const pageSubtitle = computed(() => ({ home: 'COMPANION GARDEN', game: 'FLOWER MATCH', garden: 'MY GARDEN' })[page.value])
+const brandFlower = publicAsset('assets/flowers/cherry.png')
 
 function navigate(next: Page) {
   page.value = next
@@ -27,7 +29,7 @@ if (import.meta.env.DEV) Object.assign(window, { resetCompanionGarden: resetTria
     <a class="skip-link" href="#main">跳到主要内容</a>
     <header class="topbar">
       <div class="brand-lockup">
-        <img src="/assets/flowers/cherry.png" alt="" />
+        <img :src="brandFlower" alt="" />
         <div><p>{{ pageSubtitle }}</p><h1>{{ pageTitle }}</h1></div>
       </div>
       <button class="settings-button" aria-label="打开设置" @click="settingsOpen = true">
