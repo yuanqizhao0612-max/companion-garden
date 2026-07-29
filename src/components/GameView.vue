@@ -4,7 +4,7 @@ import {
   PhArrowRight, PhArrowUUpLeft, PhFlowerTulip, PhHouseLine, PhLightbulb,
   PhPersonSimpleWalk, PhShuffleAngular, PhStar, PhTarget,
 } from '@phosphor-icons/vue'
-import { publicAsset, TILE_META, WARM_WORDS } from '../data'
+import { getBloomFlower, getBloomStage, publicAsset, TILE_META, WARM_WORDS } from '../data'
 import { garden, recordAttempt, recordSuccess } from '../composables/useGarden'
 import { useMatchGame } from '../composables/useMatchGame'
 
@@ -16,7 +16,8 @@ const newHighest = ref(false)
 const warmWord = ref(WARM_WORDS[Math.floor(Math.random() * WARM_WORDS.length)])
 const goalLeft = computed(() => Math.max(0, game.target.value - game.collectedTotal.value))
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
-const successFlower = TILE_META.peach.image
+const successFlower = computed(() => getBloomFlower(playedLevel.value))
+const successBloomStage = computed(() => getBloomStage(playedLevel.value))
 const retryFlower = TILE_META.berry.image
 const bloomSpirit = publicAsset('assets/effects/bloom-spirit-v3.png')
 
@@ -94,7 +95,7 @@ function previewLoss() {
 
       <Transition name="completion">
         <div v-if="game.completionMessage.value" class="completion-message" role="status">
-          <img :src="bloomSpirit" alt="" />
+          <img :src="successFlower" alt="" />
           <span>小院今日札记</span>
           <strong>{{ game.completionMessage.value }}</strong>
         </div>
@@ -147,9 +148,9 @@ function previewLoss() {
       <section class="result-card" role="dialog" aria-modal="true" :aria-labelledby="game.status.value === 'goalReached' ? 'win-title' : 'complete-title'">
         <img class="result-flower" :src="game.status.value === 'goalReached' ? successFlower : retryFlower" alt="" />
         <template v-if="game.status.value === 'goalReached'">
-          <p class="result-kicker">今天的小院照顾好了</p>
-          <h2 id="win-title">又开了一片花</h2>
-          <p>{{ warmWord }}，第 {{ playedLevel }} 次照料完成。</p>
+          <p class="result-kicker">陪伴花 · 第 {{ successBloomStage }} 阶段</p>
+          <h2 id="win-title">花瓣又打开了一点</h2>
+          <p>{{ warmWord }}，第 {{ playedLevel }} 关的心意已经留下。</p>
           <span v-if="newHighest" class="new-record"><PhStar weight="fill" />新的最高纪录</span>
           <button class="primary-action compact" @click="startLevel(garden.currentLevel)">下一关<PhArrowRight /></button>
           <button class="secondary-result" @click="emit('garden')"><PhHouseLine weight="fill" />看看花园</button>

@@ -3,6 +3,11 @@ export { LEVELS, getLevelConfig } from './levels'
 
 export const publicAsset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
 
+export const getBloomStage = (level: number) => Math.min(5, Math.max(1, Math.ceil(level / 6)))
+
+export const getBloomFlower = (level: number) =>
+  publicAsset(`assets/growth/bloom-${getBloomStage(level)}-v4.png`)
+
 export const WARM_WORDS = [
   '今天也辛苦啦',
   '慢慢来，就很好',

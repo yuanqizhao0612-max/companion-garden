@@ -1,58 +1,78 @@
-# 《陪伴花园》V0.2 视觉重构 Design QA
+# 《陪伴花园》V0.4 视觉实现 QA
 
-## Source
+## 对比基准
 
-- Reference: `/Users/zhaokaixin/Downloads/ChatGPT Image 2026年7月28日 23_13_27.png`
-- Reference size: 1672 × 941 px
-- Target: retain the reference's warm cream canvas, soft white cards, restrained shadows, pink accents, realistic flower tiles, compact status strip, and three-button action hierarchy.
+- Source visual truth:
+  - `/Users/zhaokaixin/Desktop/关于游戏的想法.docx`
+  - `/tmp/about-game-docx-render.waVViV/page-1.png`
+  - `/tmp/about-game-refs.EBSANM/image4.jpg`
+  - `/tmp/about-game-refs.EBSANM/image6.jpg`
+- Implementation screenshots:
+  - `artifacts/v04/home-mobile.png`
+  - `artifacts/v04/game-mobile.png`
+  - `artifacts/v04/result-mobile.png`
+  - `artifacts/v04/garden-mobile.png`
+- Combined comparison evidence:
+  - `artifacts/v04/design-qa-overview.png`
+  - `artifacts/v04/qa-home-comparison.png`
+  - `artifacts/v04/qa-garden-comparison.png`
+  - `artifacts/v04/qa-result-comparison.png`
+- State: current saved garden progress; level 9; successful level-completion preview; garden growth stage 5.
 
-## Implementation evidence
+## Capture normalization
 
-- Home: `screenshots/v02-redesign/home-mobile.png`
-- Game: `screenshots/v02-redesign/game-mobile.png`
-- Result: `screenshots/v02-redesign/result-mobile.png`
-- Garden: `screenshots/v02-redesign/garden-mobile.png`
-- Direct comparison: `screenshots/v02-redesign/reference-vs-game.png`
-- Verification viewport: 390 × 844 CSS px
-- Verified state: home → game → pass result → garden
+- Browser: Codex in-app browser.
+- Browser viewport: 800 × 1000 CSS px, device scale factor 1.
+- Product shell: centered, maximum 520 CSS px.
+- Source pixels: homepage page render 1300 × 1682; garden reference 928 × 1232; growth reference 853 × 853.
+- Implementation pixels: home 330 × 1160; game 520 × 1080; result 520 × 878; garden 330 × 1600.
+- Density normalization: source and implementation images were proportionally downsampled into equal comparison panels without stretching. The generated art kept its native aspect ratio and crop.
 
-## Visual comparison
+## Findings
 
-The source is a desktop composition and the implementation target is a mobile browser. The responsive reinterpretation keeps the source hierarchy rather than compressing the desktop canvas: brand lockup, status strip, goal chips, six-column board, and hint/shuffle/back controls retain their original order and visual weight.
+- No actionable P0/P1/P2 findings remain.
+- [P3] The garden page is intentionally longer than one phone viewport because it includes growth statistics, avatar selection, element meanings, and the next-play action. The primary growth scene and companion flower remain above the fold.
 
-- Color and mood: passed — warm cream surface, muted brown text, dusty pink highlights, pale green/blue/orange controls.
-- Typography: passed — dark high-weight Chinese display headings paired with quiet uppercase English labels.
-- Cards and depth: passed — rounded white cards, thin warm borders, and restrained soft shadows.
-- Flower fidelity: passed — five production SVG tiles use distinct silhouettes, internal structures, and color families.
-- Board density: passed — all 36 touch targets fit within 390 px without horizontal overflow.
-- Mobile hierarchy: passed — goal and move information remain visible above the board; primary actions remain reachable below it.
-- Home and garden alignment: passed — both pages extend the same cream, storybook, family-companionship language.
-- Result state: passed — centered, focused completion card with no clipped content.
-- Accessibility: passed — semantic buttons, descriptive tile labels, visible focus states, and reduced-motion handling.
-- Console: passed — no browser warnings or errors during the verified journey.
+## Required fidelity surfaces
 
-## Interaction verification
+- Fonts and typography: Chinese display copy uses a strong, elderly-readable hierarchy; body copy remains at comfortable optical weights; no unintended truncation remains.
+- Spacing and layout rhythm: 22 px outer spacing, 24–34 px card radii, restrained shadows, and consistent vertical grouping match the soft premium direction.
+- Colors and visual tokens: warm ivory, blossom pink, leaf green, and muted brown are consistently mapped across home, game, result, and garden states.
+- Image quality and asset fidelity: the homepage magnolia/flower-person scene, miniature garden, and five transparent flower-growth stages are production assets, not placeholders or CSS approximations. Crops are sharp and preserve the intended subjects.
+- Copy and content: “欢迎来到陪伴花园”, “花瓣又打开了一点”, and the non-failure retry language match the attachment’s companionship and gradual-growth concept.
 
-- Start today: opens the current game.
-- Hint: selects an available move and displays guidance.
-- Shuffle: rebuilds the board without reducing remaining moves.
-- Selection: the tapped flower immediately lifts and enlarges.
-- Invalid swap: both flowers gently shake, no move is deducted, and the copy invites another look.
-- Valid three-match: three flowers bloom before fading; “开花啦” and eight restrained petals appear.
-- Four/five/combo feedback: pure feedback classification tests cover all tiers; five-match uses a board-wide soft glow and combo tones rise by chain depth.
-- Audio and touch: short sine-wave chimes and optional vibration run only after a user gesture; no autoplay or casino-style effects.
-- Completion: the board fades into “今天又照顾好了小院”, while the unfinished state says “还差一点点”.
-- Settings: opens successfully.
-- Avatar choice: updates the selected state.
-- Pass result and garden navigation: open successfully.
+## Full-view comparison evidence
+
+- Homepage preserves the reference’s pink artistic poster feeling while turning the large magnolia and flower person into the interactive entry scene.
+- Garden reproduces the soft miniature 3D cottage language and expands it into a denser, visibly cared-for flower field.
+- Result feedback uses the reference pink bud as a persistent growth reward rather than a generic score badge.
+
+## Focused comparison evidence
+
+- Homepage focal region: generated magnolia petal translucency, warm pink atmosphere, flower-person proportions, headline contrast, and speech bubble were checked together in `qa-home-comparison.png`.
+- Garden focal region: cottage roof, rounded trees, stepping stones, foreground tulips/roses/daisies/sunflowers, and character scale were checked in `qa-garden-comparison.png`.
+- Completion focal region: bud silhouette, pink material, yellow stamens, green leaves, transparent edge quality, and modal scale were checked in `qa-result-comparison.png`.
 
 ## Comparison history
 
-1. Initial mobile implementation matched the source palette and structure.
-2. Removed development-only controls from the normal experience.
-3. Replaced the fixed blurred result layer with a stable absolute overlay to eliminate mobile screenshot clipping while preserving the intended centered modal.
-4. Re-captured the game, result, and garden states and compared the reference and implementation in one combined image.
-5. Rebuilt the tile family for grayscale shape recognition and added a dedicated Game Feel feedback layer.
-6. Verified at 390 × 844: 53.3 px tile cells with 118% flower artwork, no horizontal overflow, correct three-match feedback, and no console errors.
+1. Initial implementation review found a P2 compact-header overflow risk at phone width: the English eyebrow could compete with the settings control.
+2. Fix applied: the brand group now flexes safely, inner copy can shrink, the eyebrow truncates gracefully, the title is slightly tightened, and the settings control has a fixed 52 px slot.
+3. Post-fix evidence: the final homepage, game, result, and garden screenshots show the complete brand lockup and settings control with no horizontal overflow.
+
+## Interaction and runtime checks
+
+- Tested: homepage → start game → successful completion preview → garden.
+- Tested: game board rendering, level controls, completion dialog, next-level and garden actions.
+- Browser console errors/warnings: none.
+
+## Implementation checklist
+
+- [x] Artistic pink homepage with a large flower and welcoming companion.
+- [x] Distinct 3D flower pieces and high-contrast six-by-six board.
+- [x] Five-stage companion flower growth.
+- [x] Growth-based completion feedback.
+- [x] Soft miniature 3D garden.
+- [x] Responsive phone layout and keyboard-visible focus treatment.
+- [x] Test, type-check, production build, and browser interaction pass.
 
 final result: passed

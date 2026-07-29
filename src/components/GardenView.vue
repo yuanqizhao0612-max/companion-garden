@@ -4,17 +4,18 @@ import {
   PhArrowRight, PhFlower, PhHouseLine, PhPath, PhPlant, PhTree, PhUserCircle,
 } from '@phosphor-icons/vue'
 import { garden } from '../composables/useGarden'
-import { publicAsset } from '../data'
+import { getBloomFlower, getBloomStage } from '../data'
 import GardenScene from './GardenScene.vue'
 
 defineEmits<{ play: []; home: [] }>()
 const previewStage = ref<number | undefined>()
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
-const companionPortrait = publicAsset('assets/scenes/garden-companion-reference-v3.jpg')
+const bloomStage = computed(() => getBloomStage(garden.currentLevel))
+const bloomFlower = computed(() => getBloomFlower(garden.currentLevel))
 const nextGrowth = computed(() => {
-  if (garden.completedRounds < 2) return `再完成 ${2 - garden.completedRounds} 局，小院会更茂盛`
-  if (garden.houseStage < 3) return `再完成 ${4 - (garden.completedRounds % 4)} 局，小屋会升级`
-  return '小院正在一天天留下生活的痕迹'
+  if (bloomStage.value >= 5) return '谢谢你一直陪着它，花已经完全盛开'
+  const nextLevel = bloomStage.value * 6 + 1
+  return `再前进 ${Math.max(1, nextLevel - garden.currentLevel)} 关，花瓣会继续展开`
 })
 
 function chooseAvatar(styleId: string) {
@@ -34,9 +35,9 @@ function chooseAvatar(styleId: string) {
       <div class="scene-badge"><PhPlant weight="fill" /><span>成长第 {{ garden.gardenLevel }} 阶段</span></div>
     </div>
 
-    <div class="growth-card companion-growth-card">
-      <span class="companion-medallion"><img :src="companionPortrait" alt="柔软花朵造型的花园伙伴" /></span>
-      <div><small>花园伙伴</small><strong>今天的小院有了新变化</strong><p>{{ nextGrowth }}</p></div>
+    <div class="growth-card companion-growth-card bloom-growth-card">
+      <span class="companion-medallion"><img :src="bloomFlower" :alt="`陪伴花第 ${bloomStage} 阶段`" /></span>
+      <div><small>我的陪伴花 · 第 {{ bloomStage }} 阶段</small><strong>今天又舒展了一点</strong><p>{{ nextGrowth }}</p></div>
     </div>
 
     <div class="garden-stats">

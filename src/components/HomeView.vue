@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PhArrowRight, PhCalendarDots, PhHouseLine, PhPlay, PhSparkle } from '@phosphor-icons/vue'
+import { PhArrowRight, PhCalendarDots, PhFlowerLotus, PhHouseLine, PhPlay, PhSparkle } from '@phosphor-icons/vue'
 import { garden } from '../composables/useGarden'
-import GardenScene from './GardenScene.vue'
+import { getBloomFlower, getBloomStage, publicAsset } from '../data'
 
 defineEmits<{ start: []; garden: [] }>()
 
+const heroImage = publicAsset('assets/scenes/home-art-garden-v4.webp')
+const bloomStage = computed(() => getBloomStage(garden.currentLevel))
+const bloomFlower = computed(() => getBloomFlower(garden.currentLevel))
 const greeting = computed(() => {
   const hour = new Date().getHours()
   if (hour < 11) return '早上好'
@@ -16,18 +19,16 @@ const greeting = computed(() => {
 
 <template>
   <section class="home-view page-wrap" aria-labelledby="welcome-title">
-    <div class="welcome-copy">
-      <p class="day-note"><PhSparkle weight="fill" />{{ greeting }}，花园一直在等你</p>
-      <h2 id="welcome-title">今天，也来<br /><em>种一朵花</em>吧</h2>
-      <p>完成一局，给家庭小院留下一点新的生机。</p>
-    </div>
-
-    <div class="home-garden-card">
-      <GardenScene :state="garden" compact />
-      <div class="garden-card-caption">
-        <span><PhHouseLine weight="fill" /></span>
-        <div><small>我的家庭小院</small><strong>已经留下 {{ garden.flowerItems.length }} 朵花</strong></div>
-        <button aria-label="看看花园" @click="$emit('garden')"><PhArrowRight /></button>
+    <div class="home-art-hero">
+      <img :src="heroImage" alt="粉色晨光中的玉兰花与花朵伙伴" />
+      <div class="welcome-copy">
+        <p class="day-note"><PhSparkle weight="fill" />{{ greeting }}，花园一直在等你</p>
+        <h2 id="welcome-title">今天，也来<br /><em>种一朵花</em>吧</h2>
+        <p>完成一局，让陪伴花再盛开一点。</p>
+      </div>
+      <div class="companion-speech">
+        <PhFlowerLotus weight="fill" />
+        <p><small>花朵伙伴</small><strong>欢迎来到陪伴花园</strong></p>
       </div>
     </div>
 
@@ -36,6 +37,16 @@ const greeting = computed(() => {
       <div><small>继续第 {{ garden.currentLevel }} 关</small><strong>开始今天</strong></div>
       <PhArrowRight />
     </button>
+
+    <div class="home-bloom-card">
+      <span class="home-bloom-art"><img :src="bloomFlower" :alt="`陪伴花第 ${bloomStage} 阶段`" /></span>
+      <div>
+        <small>我的陪伴花 · 第 {{ bloomStage }} 阶段</small>
+        <strong>{{ bloomStage === 5 ? '已经温柔盛开' : '每过几关，就会再开一点' }}</strong>
+        <p>现在来到第 {{ garden.currentLevel }} 关</p>
+      </div>
+      <PhArrowRight />
+    </div>
 
     <button class="secondary-action garden-entry" @click="$emit('garden')">
       <span class="round-icon"><PhHouseLine weight="fill" /></span>
