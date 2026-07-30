@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
-  PhArrowRight, PhDrop, PhFlower, PhHouseLine, PhPath, PhPlant, PhSparkle,
-  PhSun, PhTree, PhUserCircle,
+  PhArrowRight, PhCalendarDots, PhDrop, PhFlower, PhHouseLine, PhPath, PhPlant,
+  PhShareNetwork, PhSparkle, PhSun, PhTree, PhUserCircle,
 } from '@phosphor-icons/vue'
-import { careForGarden, garden } from '../composables/useGarden'
+import { careForGarden, garden, getDailyChallenge } from '../composables/useGarden'
 import { getBloomFlower, getBloomStage, publicAsset, TILE_META } from '../data'
+import type { TileKind } from '../types'
 import GardenScene from './GardenScene.vue'
 
 defineEmits<{ play: []; home: [] }>()
 const previewStage = ref<number | undefined>()
 const growthAnimationKey = ref(0)
+const shareStatus = ref('')
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
 const effectiveGardenStage = computed(() => previewStage.value ?? garden.gardenLevel)
 const visibleFlowerCount = computed(() => previewStage.value === undefined
@@ -25,6 +27,12 @@ const plantStages = [
   { name: '开花', note: '这株花已经盛开，并留进了你的收藏', asset: publicAsset('assets/growth-v03/bloom-v03.png') },
 ]
 const activePlant = computed(() => plantStages[garden.activePlantStage])
+const dailyChallenge = computed(() => getDailyChallenge(garden))
+const collectionSummary = computed(() => (Object.keys(TILE_META) as TileKind[]).map((kind) => ({
+  kind,
+  ...TILE_META[kind],
+  count: garden.flowerItems.filter((flower) => flower.type === kind).length,
+})))
 const canCare = computed(() => garden.pendingCare > 0 && garden.sunlight >= 20 && garden.waterDrops >= 1)
 const nextGrowth = computed(() => {
   if (bloomStage.value >= 5) return '谢谢你一直陪着它，花已经完全盛开'
@@ -39,6 +47,23 @@ function chooseAvatar(styleId: string) {
 function careForPlant() {
   if (!careForGarden()) return
   growthAnimationKey.value += 1
+}
+
+async function shareGarden() {
+  const text = `我的陪伴花园已经有 ${garden.flowerItems.length} 株花、${garden.treeSeeds} 颗树种，我们连续相伴了 ${garden.streakDays} 天。`
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: '我的陪伴花园', text, url: window.location.href })
+      shareStatus.value = '分享卡片已经准备好'
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(`${text} ${window.location.href}`)
+      shareStatus.value = '花园故事已经复制，可以发给家人'
+    } else {
+      shareStatus.value = '可以为花园截张图，发给家人看看'
+    }
+  } catch {
+    shareStatus.value = '没有分享也没关系，花园会一直在这里'
+  }
 }
 </script>
 
@@ -99,6 +124,12 @@ function careForPlant() {
       <div><span class="stat-icon tree"><PhTree weight="fill" /></span><strong>{{ garden.streakDays }}</strong><small>相伴天数</small></div>
     </div>
 
+    <section class="garden-milestones" aria-label="小院长期成长记录">
+      <div><PhTree weight="fill" /><span><small>带回小院的树种</small><strong>{{ garden.treeSeeds }} 颗</strong></span></div>
+      <div><PhSparkle weight="fill" /><span><small>每天坚持留下的纪念物</small><strong>{{ garden.keepsakes }} 件</strong></span></div>
+      <div><PhCalendarDots weight="duotone" /><span><small>今日轻任务</small><strong>{{ dailyChallenge.progress }}/{{ dailyChallenge.target }}</strong></span></div>
+    </section>
+
     <section class="plant-collection" aria-labelledby="collection-title">
       <div class="section-heading">
         <span><PhFlower weight="duotone" /></span>
@@ -110,6 +141,17 @@ function careForPlant() {
         </span>
       </div>
       <p v-else class="empty-collection">第一株花正在小院里慢慢长大。</p>
+      <div class="collection-ledger" aria-label="不同花朵的成长记录">
+        <span v-for="item in collectionSummary" :key="item.kind" :class="{ empty: item.count === 0 }">
+          <img :src="item.image" alt="" /><b>{{ item.name }}</b><small>养成 {{ item.count }} 株</small>
+        </span>
+      </div>
+    </section>
+
+    <section class="share-garden-card" aria-labelledby="share-garden-title">
+      <span><PhShareNetwork weight="duotone" /></span>
+      <div><small>分享成长，不比排名</small><h3 id="share-garden-title">把今天的小院发给家人看看</h3><p>{{ shareStatus || '分享的是坚持天数、养成植物和小院故事。' }}</p></div>
+      <button type="button" @click="shareGarden">分享花园</button>
     </section>
 
     <section class="avatar-picker" aria-labelledby="avatar-title">

@@ -1,5 +1,5 @@
 import { TILE_KINDS } from '../data'
-import type { Tile, TileKind } from '../types'
+import type { GardenMission, Tile, TileKind } from '../types'
 
 export const BOARD_SIZE = 6
 let nextId = 1
@@ -9,12 +9,15 @@ export const makeTile = (kind: TileKind = TILE_KINDS[Math.floor(Math.random() * 
   kind,
 })
 
+export const isTaskBlocked = (tile?: Tile) =>
+  Boolean(tile?.obstacle || tile?.feature === 'bud' || tile?.feature === 'vine')
+
 function createsImmediateMatch(board: Tile[], index: number, kind: TileKind) {
   const row = Math.floor(index / BOARD_SIZE)
   const col = index % BOARD_SIZE
   return (
-    (col >= 2 && !board[index - 1]?.obstacle && !board[index - 2]?.obstacle && board[index - 1]?.kind === kind && board[index - 2]?.kind === kind) ||
-    (row >= 2 && !board[index - BOARD_SIZE]?.obstacle && !board[index - BOARD_SIZE * 2]?.obstacle && board[index - BOARD_SIZE]?.kind === kind && board[index - BOARD_SIZE * 2]?.kind === kind)
+    (col >= 2 && !isTaskBlocked(board[index - 1]) && !isTaskBlocked(board[index - 2]) && board[index - 1]?.kind === kind && board[index - 2]?.kind === kind) ||
+    (row >= 2 && !isTaskBlocked(board[index - BOARD_SIZE]) && !isTaskBlocked(board[index - BOARD_SIZE * 2]) && board[index - BOARD_SIZE]?.kind === kind && board[index - BOARD_SIZE * 2]?.kind === kind)
   )
 }
 
@@ -34,8 +37,8 @@ export function findMatchGroups(board: Tile[]) {
     for (let col = 1; col <= BOARD_SIZE; col += 1) {
       const same =
         col < BOARD_SIZE &&
-        !board[row * BOARD_SIZE + col]?.obstacle &&
-        !board[row * BOARD_SIZE + start]?.obstacle &&
+        !isTaskBlocked(board[row * BOARD_SIZE + col]) &&
+        !isTaskBlocked(board[row * BOARD_SIZE + start]) &&
         board[row * BOARD_SIZE + col]?.kind === board[row * BOARD_SIZE + start]?.kind
       if (!same) {
         if (col - start >= 3) {
@@ -50,8 +53,8 @@ export function findMatchGroups(board: Tile[]) {
     for (let row = 1; row <= BOARD_SIZE; row += 1) {
       const same =
         row < BOARD_SIZE &&
-        !board[row * BOARD_SIZE + col]?.obstacle &&
-        !board[start * BOARD_SIZE + col]?.obstacle &&
+        !isTaskBlocked(board[row * BOARD_SIZE + col]) &&
+        !isTaskBlocked(board[start * BOARD_SIZE + col]) &&
         board[row * BOARD_SIZE + col]?.kind === board[start * BOARD_SIZE + col]?.kind
       if (!same) {
         if (row - start >= 3) {
@@ -83,7 +86,7 @@ export function swapTiles(board: Tile[], a: number, b: number) {
 }
 
 export function attemptSwap(board: Tile[], a: number, b: number) {
-  if (!isAdjacent(a, b) || board[a]?.obstacle || board[b]?.obstacle) return { board, valid: false, activated: new Set<number>() }
+  if (!isAdjacent(a, b) || isTaskBlocked(board[a]) || isTaskBlocked(board[b])) return { board, valid: false, activated: new Set<number>() }
   const swapped = swapTiles(board, a, b)
   const rainbow = [a, b].find((index) => swapped[index]?.special === 'rainbow')
   if (rainbow !== undefined) {
@@ -105,7 +108,7 @@ export function hasAvailableMove(board: Tile[]) {
     const neighbors = [index + 1, index + BOARD_SIZE]
     for (const neighbor of neighbors) {
       if (neighbor >= board.length || (neighbor === index + 1 && index % BOARD_SIZE === BOARD_SIZE - 1)) continue
-      if (findMatches(swapTiles(board, index, neighbor)).size) return true
+      if (!isTaskBlocked(board[index]) && !isTaskBlocked(board[neighbor]) && findMatches(swapTiles(board, index, neighbor)).size) return true
     }
   }
   return false
@@ -116,7 +119,7 @@ export function findAvailableMove(board: Tile[]) {
     const neighbors = [index + 1, index + BOARD_SIZE]
     for (const neighbor of neighbors) {
       if (neighbor >= board.length || (neighbor === index + 1 && index % BOARD_SIZE === BOARD_SIZE - 1)) continue
-      if (!board[index]?.obstacle && !board[neighbor]?.obstacle && findMatches(swapTiles(board, index, neighbor)).size) {
+      if (!isTaskBlocked(board[index]) && !isTaskBlocked(board[neighbor]) && findMatches(swapTiles(board, index, neighbor)).size) {
         return [index, neighbor] as const
       }
     }
@@ -144,7 +147,7 @@ export function collapseMatches(
     let segmentBottom = BOARD_SIZE - 1
     for (let row = BOARD_SIZE - 1; row >= -1; row -= 1) {
       const index = row * BOARD_SIZE + col
-      const boundary = row === -1 || board[index]?.obstacle
+      const boundary = row === -1 || isTaskBlocked(board[index])
       if (!boundary) continue
       const segmentTop = row + 1
       const kept: Tile[] = []
@@ -162,13 +165,24 @@ export function collapseMatches(
   return next
 }
 
-export function createLevelBoard(obstacles: number[] = [], _covers: number[] = [], random: () => number = Math.random) {
+export function createLevelBoard(
+  obstacles: number[] = [],
+  _covers: number[] = [],
+  random: () => number = Math.random,
+  mission?: GardenMission,
+) {
   let board = createPlayableBoard(random)
   board = board.map((tile, index) => ({
     ...tile,
     ...(obstacles.includes(index) ? { obstacle: 'stone' as const, obstacleHits: 1 } : {}),
+    ...(mission?.positions?.includes(index) && ['bud', 'vine', 'seed'].includes(mission.kind)
+      ? {
+          feature: mission.kind as NonNullable<Tile['feature']>,
+          featureHits: mission.kind === 'vine' ? mission.hits ?? 2 : 1,
+        }
+      : {}),
   }))
-  return hasAvailableMove(board) ? board : createLevelBoard(obstacles, [], random)
+  return hasAvailableMove(board) ? board : createLevelBoard(obstacles, [], random, mission)
 }
 
 export function specialForGroup(group: number[]) {
@@ -228,4 +242,35 @@ export function hitAdjacentObstacles(board: Tile[], cleared: Set<number>) {
     }
   }
   return board.map((tile, index) => hit.has(index) ? { ...tile, obstacle: undefined, obstacleHits: undefined } : tile)
+}
+
+export function countClearedFeatures(board: Tile[], cleared: Set<number>, feature: NonNullable<Tile['feature']>) {
+  return [...cleared].filter((index) => board[index]?.feature === feature).length
+}
+
+export function hitAdjacentFeatures(board: Tile[], cleared: Set<number>) {
+  const hit = new Set<number>()
+  for (const index of cleared) {
+    for (const neighbor of [index - 1, index + 1, index - BOARD_SIZE, index + BOARD_SIZE]) {
+      if (
+        neighbor >= 0 &&
+        neighbor < board.length &&
+        isAdjacent(index, neighbor) &&
+        (board[neighbor]?.feature === 'bud' || board[neighbor]?.feature === 'vine')
+      ) hit.add(neighbor)
+    }
+  }
+
+  let completed = 0
+  const next = board.map((tile, index) => {
+    if (!hit.has(index)) return tile
+    const remaining = Math.max(0, (tile.featureHits ?? 1) - 1)
+    if (remaining === 0) {
+      completed += 1
+      return { ...tile, feature: undefined, featureHits: undefined }
+    }
+    return { ...tile, featureHits: remaining }
+  })
+
+  return { board: next, completed }
 }

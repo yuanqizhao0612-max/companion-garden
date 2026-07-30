@@ -23,12 +23,15 @@ export const DEFAULT_GARDEN_STATE: GardenState = {
   waterDrops: 0,
   pendingCare: 0,
   activePlantStage: 0,
+  treeSeeds: 0,
+  keepsakes: 0,
+  dailyChallenge: { date: null, progress: 0, target: 2, rewarded: false },
   pathStage: 1,
   playerAvatar: { styleId: 'coral', position: 'door' },
   familyMembers: [],
 }
 
-const dateKey = (date = new Date()) => {
+export const dateKey = (date = new Date()) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -70,6 +73,16 @@ export function normalizeGardenState(value: Partial<GardenState> & Record<string
     waterDrops: Math.max(0, Number(value.waterDrops ?? 0)),
     pendingCare: Math.max(0, Number(value.pendingCare ?? 0)),
     activePlantStage: Math.max(0, Math.min(3, Number(value.activePlantStage ?? 0))) as GardenState['activePlantStage'],
+    treeSeeds: Math.max(0, Number(value.treeSeeds ?? 0)),
+    keepsakes: Math.max(0, Number(value.keepsakes ?? 0)),
+    dailyChallenge: typeof value.dailyChallenge === 'object' && value.dailyChallenge
+      ? {
+          date: (value.dailyChallenge as GardenState['dailyChallenge']).date ?? null,
+          progress: Math.max(0, Number((value.dailyChallenge as GardenState['dailyChallenge']).progress ?? 0)),
+          target: Math.max(1, Number((value.dailyChallenge as GardenState['dailyChallenge']).target ?? 2)),
+          rewarded: Boolean((value.dailyChallenge as GardenState['dailyChallenge']).rewarded),
+        }
+      : { date: null, progress: 0, target: 2, rewarded: false },
     pathStage: Number(value.pathStage ?? 1),
     playerAvatar: typeof value.playerAvatar === 'object' && value.playerAvatar
       ? value.playerAvatar as GardenState['playerAvatar']
@@ -107,7 +120,15 @@ function updateStreak(state: GardenState, now = new Date()) {
   state.lastPlayedDate = current
 }
 
-export function applySuccess(state: GardenState, completedLevel: number, now = new Date()) {
+export type GameReward = { treeSeeds?: number }
+
+export function getDailyChallenge(state: GardenState, now = new Date()) {
+  return state.dailyChallenge.date === dateKey(now)
+    ? state.dailyChallenge
+    : { date: dateKey(now), progress: 0, target: 2, rewarded: false }
+}
+
+export function applySuccess(state: GardenState, completedLevel: number, now = new Date(), reward: GameReward = {}) {
   updateStreak(state, now)
   state.attemptedRounds += 1
   state.completedRounds += 1
@@ -116,11 +137,25 @@ export function applySuccess(state: GardenState, completedLevel: number, now = n
   state.sunlight += 30
   state.waterDrops += 1
   state.pendingCare += 1
+  state.treeSeeds += reward.treeSeeds ?? 0
+  const daily = getDailyChallenge(state, now)
+  const nextProgress = Math.min(daily.target, daily.progress + 1)
+  const completedToday = nextProgress >= daily.target
+  const earnedKeepsake = completedToday && !daily.rewarded
+  state.dailyChallenge = {
+    ...daily,
+    progress: nextProgress,
+    rewarded: daily.rewarded || completedToday,
+  }
+  if (earnedKeepsake) state.keepsakes += 1
   state.gardenLevel = Math.min(5, 1 + Math.floor(state.flowerItems.length / 2))
   state.houseStage = Math.min(3, 1 + Math.floor(state.completedRounds / 4))
   state.treeStages = {
-    memoryTree: Math.min(3, 1 + Math.floor(state.completedRounds / 3)),
-    familyTree: Math.min(3, 1 + Math.floor(state.streakDays / 3)),
+    memoryTree: Math.max(
+      state.treeStages.memoryTree ?? 1,
+      Math.min(3, 1 + Math.floor(Math.max(state.completedRounds, state.treeSeeds * 2) / 3)),
+    ),
+    familyTree: Math.max(state.treeStages.familyTree ?? 1, Math.min(3, 1 + Math.floor(state.streakDays / 3))),
   }
   state.pathStage = Math.min(3, 1 + Math.floor(state.highestLevel / 4))
 }
@@ -141,7 +176,7 @@ export function applyPlantCare(state: GardenState, now = new Date()) {
   if (state.activePlantStage === 3) {
     state.flowerItems = [...state.flowerItems, {
       id: `flower-${state.highestLevel}-${state.completedRounds}-${state.flowerItems.length + 1}`,
-      type: (['peach', 'daisy', 'bell'] as const)[state.flowerItems.length % 3],
+      type: (['peach', 'daisy', 'leaf', 'berry', 'bell'] as const)[state.flowerItems.length % 5],
       earnedAt: dateKey(now),
     }]
     state.flowerCount = state.flowerItems.length
@@ -160,9 +195,9 @@ export const garden = reactive<GardenState>(loadGardenState())
 
 watch(garden, (value) => saveGardenState(value), { deep: true })
 
-export function recordSuccess(completedLevel: number) {
+export function recordSuccess(completedLevel: number, reward: GameReward = {}) {
   const previousHighest = garden.highestLevel
-  applySuccess(garden, completedLevel)
+  applySuccess(garden, completedLevel, new Date(), reward)
   return garden.highestLevel > previousHighest
 }
 

@@ -4,7 +4,9 @@ import {
   applyAttempt,
   applyPlantCare,
   applySuccess,
+  getDailyChallenge,
   loadGardenState,
+  normalizeGardenState,
   saveGardenState,
   STORAGE_KEY,
   type StorageLike,
@@ -33,6 +35,7 @@ describe('garden progress', () => {
     expect(state.sunlight).toBe(30)
     expect(state.waterDrops).toBe(1)
     expect(state.pendingCare).toBe(1)
+    expect(state.dailyChallenge.progress).toBe(1)
   })
 
   it('does not advance after an unfinished round', () => {
@@ -98,5 +101,44 @@ describe('garden progress', () => {
     expect(state.houseStage).toBe(3)
     expect(state.treeStages.memoryTree).toBe(3)
     expect(state.pathStage).toBe(3)
+  })
+
+  it('keeps V0.3 saves compatible with the new V0.4 fields', () => {
+    const migrated = normalizeGardenState({
+      currentLevel: 7,
+      highestLevel: 6,
+      completedRounds: 6,
+      flowerItems: [],
+      sunlight: 40,
+      waterDrops: 2,
+      pendingCare: 1,
+      activePlantStage: 2,
+    })
+    expect(migrated.currentLevel).toBe(7)
+    expect(migrated.activePlantStage).toBe(2)
+    expect(migrated.treeSeeds).toBe(0)
+    expect(migrated.keepsakes).toBe(0)
+    expect(migrated.dailyChallenge).toEqual({ date: null, progress: 0, target: 2, rewarded: false })
+  })
+
+  it('turns two daily completions into one gentle keepsake', () => {
+    const state = freshState()
+    const dayOne = new Date(2026, 6, 27)
+    applySuccess(state, 1, dayOne)
+    expect(getDailyChallenge(state, dayOne).progress).toBe(1)
+    expect(state.keepsakes).toBe(0)
+    applySuccess(state, 2, dayOne)
+    expect(state.dailyChallenge.rewarded).toBe(true)
+    expect(state.keepsakes).toBe(1)
+    applySuccess(state, 3, dayOne)
+    expect(state.keepsakes).toBe(1)
+  })
+
+  it('brings a tree seed mission reward back to the existing garden', () => {
+    const state = freshState()
+    applySuccess(state, 3, new Date(2026, 6, 27), { treeSeeds: 1 })
+    expect(state.treeSeeds).toBe(1)
+    expect(state.sunlight).toBe(30)
+    expect(state.pendingCare).toBe(1)
   })
 })

@@ -3,6 +3,7 @@ import { getLevelConfig, TILE_META } from '../data'
 import {
   attemptSwap,
   collapseMatches,
+  countClearedFeatures,
   createLevelBoard,
   expandSpecials,
   findMatchGroups,
@@ -10,12 +11,14 @@ import {
   findMatches,
   hasAvailableMove,
   hitAdjacentObstacles,
+  hitAdjacentFeatures,
+  isTaskBlocked,
   placeCreatedSpecials,
   specialForGroup,
   type SpecialCreation,
 } from '../game/core'
 import { classifyMatchFeedback, type MatchFeedback } from '../game/feedback'
-import type { Tile, TileKind } from '../types'
+import type { GardenMission, Tile, TileKind } from '../types'
 import { useGameAudio } from './useGameAudio'
 
 const pause = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -24,7 +27,7 @@ export function useMatchGame(initialLevel: number) {
   const audio = useGameAudio()
   const level = ref(initialLevel)
   const config = ref(getLevelConfig(initialLevel))
-  const board = ref<Tile[]>(createLevelBoard(config.value.obstacles, config.value.covers))
+  const board = ref<Tile[]>(createLevelBoard(config.value.obstacles, config.value.covers, Math.random, config.value.mission))
   const selected = ref<number | null>(null)
   const moves = ref(config.value.moves)
   const collected = ref<Partial<Record<TileKind, number>>>({})
@@ -35,18 +38,44 @@ export function useMatchGame(initialLevel: number) {
   const swappingTiles = ref<number[]>([])
   const completionMessage = ref('')
   const status = ref<'playing' | 'goalReached' | 'journeyComplete'>('playing')
+  const missionProgress = ref(0)
   let feedbackId = 0
   const goals = computed(() => Object.entries(config.value.goals) as Array<[TileKind, number]>)
-  const target = computed(() => goals.value.reduce((sum, [, amount]) => sum + amount, 0))
-  const collectedTotal = computed(() => goals.value.reduce((sum, [kind, amount]) => sum + Math.min(amount, collected.value[kind] ?? 0), 0))
+  const mission = computed(() => config.value.mission)
+  const target = computed(() => goals.value.reduce((sum, [, amount]) => sum + amount, 0) + mission.value.target)
+  const collectedTotal = computed(() =>
+    goals.value.reduce((sum, [kind, amount]) => sum + Math.min(amount, collected.value[kind] ?? 0), 0) +
+    Math.min(mission.value.target, missionProgress.value),
+  )
   const progress = computed(() => Math.min(100, Math.round((collectedTotal.value / target.value) * 100)))
-  const goalReached = computed(() => goals.value.every(([kind, amount]) => (collected.value[kind] ?? 0) >= amount))
+  const goalReached = computed(() =>
+    goals.value.every(([kind, amount]) => (collected.value[kind] ?? 0) >= amount) &&
+    missionProgress.value >= mission.value.target,
+  )
   const remainingGoals = computed(() => goals.value.map(([kind, amount]) => ({
     kind,
     name: TILE_META[kind].name,
     amount,
     current: Math.min(amount, collected.value[kind] ?? 0),
   })))
+  const remainingMission = computed(() => ({
+    ...mission.value,
+    current: Math.min(mission.value.target, missionProgress.value),
+    done: missionProgress.value >= mission.value.target,
+  }))
+
+  const advanceMission = (amount = 1) => {
+    missionProgress.value = Math.min(mission.value.target, missionProgress.value + amount)
+  }
+
+  const activeBoardMission = (): GardenMission => {
+    const remaining = Math.max(0, mission.value.target - missionProgress.value)
+    return {
+      ...mission.value,
+      target: remaining,
+      positions: mission.value.positions?.slice(0, remaining),
+    }
+  }
 
   const settle = async (initial = new Set<number>()) => {
     let chain = 0
@@ -55,7 +84,7 @@ export function useMatchGame(initialLevel: number) {
     while (matches.size) {
       chain += 1
       const groups = findMatchGroups(board.value)
-      let expanded = expandSpecials(board.value, matches)
+      const expanded = expandSpecials(board.value, matches)
       const creation = new Map<number, SpecialCreation>()
 
       if (!forced.size) {
@@ -76,7 +105,7 @@ export function useMatchGame(initialLevel: number) {
         }
       }
 
-      const removable = new Set([...expanded].filter((index) => !board.value[index]?.obstacle))
+      const removable = new Set([...expanded].filter((index) => !isTaskBlocked(board.value[index])))
       const matchSize = groups.length
         ? Math.max(...groups.map((group) => group.length))
         : Math.min(5, Math.max(3, removable.size))
@@ -87,15 +116,29 @@ export function useMatchGame(initialLevel: number) {
         return removable.has(index) ? { ...tile, removing: true } : tile
       })
 
+      const seedProgress = mission.value.kind === 'seed'
+        ? countClearedFeatures(board.value, removable, 'seed')
+        : 0
+      const featureResult = hitAdjacentFeatures(board.value, removable)
+      board.value = featureResult.board
+
       for (const index of removable) {
         const kind = board.value[index]?.kind
         if (kind && config.value.goals[kind]) collected.value[kind] = (collected.value[kind] ?? 0) + 1
       }
       board.value = hitAdjacentObstacles(board.value, removable)
+      if (mission.value.kind === 'water') advanceMission()
+      if (mission.value.kind === 'special') advanceMission(creation.size)
+      if (mission.value.kind === 'combo' && chain >= 2) advanceMission()
+      if (mission.value.kind === 'seed') advanceMission(seedProgress)
+      if (mission.value.kind === 'bud' || mission.value.kind === 'vine') advanceMission(featureResult.completed)
       audio.match(chain, matchSize)
 
       const specialName = [...creation.values()][0]?.special
-      if (specialName === 'rainbow') message.value = '彩虹花出现了，下一步由你决定'
+      if (featureResult.completed && mission.value.kind === 'bud') message.value = '花苞打开了，这一步照顾得真好'
+      else if (featureResult.completed && mission.value.kind === 'vine') message.value = '藤蔓松开了，小路又通了一点'
+      else if (seedProgress) message.value = '找到树种了，它会回到小院继续长大'
+      else if (specialName === 'rainbow') message.value = '彩虹花出现了，下一步由你决定'
       else if (specialName === 'bouquet') message.value = '花束开了，会清除周围一圈'
       else if (specialName) message.value = '条纹花出现了，可以清除一整线'
       else message.value = feedbackDetail.text
@@ -112,12 +155,12 @@ export function useMatchGame(initialLevel: number) {
     if (!hasAvailableMove(board.value)) {
       message.value = '暂时没有合适的路，花朵重新排一排'
       await pause(300)
-      board.value = createLevelBoard(config.value.obstacles, config.value.covers)
+      board.value = createLevelBoard(config.value.obstacles, config.value.covers, Math.random, activeBoardMission())
     }
   }
 
   const choose = async (index: number) => {
-    if (busy.value || status.value !== 'playing' || board.value[index]?.obstacle) return
+    if (busy.value || status.value !== 'playing' || isTaskBlocked(board.value[index])) return
     if (selected.value === null) {
       selected.value = index
       audio.select()
@@ -170,7 +213,7 @@ export function useMatchGame(initialLevel: number) {
     level.value = nextLevel
     config.value = getLevelConfig(nextLevel)
     moves.value = config.value.moves
-    board.value = createLevelBoard(config.value.obstacles, config.value.covers)
+    board.value = createLevelBoard(config.value.obstacles, config.value.covers, Math.random, config.value.mission)
     selected.value = null
     collected.value = {}
     busy.value = false
@@ -180,6 +223,7 @@ export function useMatchGame(initialLevel: number) {
     swappingTiles.value = []
     completionMessage.value = ''
     status.value = 'playing'
+    missionProgress.value = 0
   }
 
   const showHint = () => {
@@ -191,7 +235,7 @@ export function useMatchGame(initialLevel: number) {
 
   const shuffle = () => {
     if (busy.value || status.value !== 'playing') return
-    board.value = createLevelBoard(config.value.obstacles, config.value.covers)
+    board.value = createLevelBoard(config.value.obstacles, config.value.covers, Math.random, activeBoardMission())
     selected.value = null
     message.value = '花朵轻轻换了位置，步数不会减少'
   }
@@ -199,6 +243,7 @@ export function useMatchGame(initialLevel: number) {
   return {
     board, selected, level, config, moves, collected, collectedTotal, busy, message, status,
     feedback, invalidTiles, swappingTiles, completionMessage,
-    progress, target, goals, remainingGoals, choose, reset, showHint, shuffle,
+    progress, target, goals, remainingGoals, mission, missionProgress, remainingMission,
+    choose, reset, showHint, shuffle,
   }
 }

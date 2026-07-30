@@ -133,6 +133,29 @@ button:focus-visible, select:focus-visible { outline: 4px solid rgba(217, 91, 12
 .companion-speech small { color: #af8294; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
 .companion-speech strong { font-size: 15px; line-height: 1.35; }
 .home-start { position: relative; z-index: 4; width: calc(100% - 28px); margin: -31px auto 0; }
+.daily-mission-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px 1fr 48px;
+  align-items: center;
+  gap: 11px;
+  margin-top: 24px;
+  padding: 14px 14px 18px;
+  overflow: hidden;
+  border: 1px solid #dce6c8;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #fbfff3, #f5f9e8);
+  box-shadow: 0 8px 21px rgba(85, 105, 52, .09);
+}
+.daily-mission-icon { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 18px; background: #e5efc9; color: #698542; }
+.daily-mission-icon svg { width: 28px; height: 28px; }
+.daily-mission-card > div:not(.daily-progress) { display: flex; min-width: 0; flex-direction: column; }
+.daily-mission-card small { color: #7b9653; font-size: 11px; font-weight: 900; letter-spacing: .05em; }
+.daily-mission-card h3 { margin: 3px 0 2px; font-size: 17px; }
+.daily-mission-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.daily-mission-card > strong { color: #67803f; font-size: 22px; text-align: center; }
+.daily-progress { position: absolute; left: 14px; right: 14px; bottom: 8px; height: 6px; overflow: hidden; border-radius: 4px; background: #e5ead7; }
+.daily-progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #a6c164, #769457); transition: width .35s ease; }
 .home-bloom-card {
   display: grid;
   grid-template-columns: 82px 1fr 22px;
@@ -250,6 +273,40 @@ button:focus-visible, select:focus-visible { outline: 4px solid rgba(217, 91, 12
 .game-status-bar strong.accent { color: var(--pink); font-size: 23px; }
 .game-status-bar > i { width: 1px; height: 28px; background: var(--line); }
 
+.mission-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 11px;
+  margin: 11px 14px 10px;
+  padding: 13px 13px 38px;
+  overflow: hidden;
+  border: 1px solid #efd9df;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #fff8fa, #fffdf9);
+  box-shadow: 0 7px 18px rgba(91, 70, 59, .07);
+}
+.mission-icon { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 17px; background: #f8e5ea; color: #c45575; }
+.mission-icon svg { width: 28px; height: 28px; }
+.mission-card > div { min-width: 0; }
+.mission-card small { color: #c25d79; font-size: 10px; font-weight: 900; letter-spacing: .07em; }
+.mission-card h3 { margin: 2px 0 2px; overflow: hidden; font-size: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.mission-card p { margin: 0; overflow: hidden; color: var(--muted); font-size: 12px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.mission-count { display: grid; min-height: 44px; place-items: center; border-radius: 15px; background: white; color: #bd5672; box-shadow: 0 4px 10px rgba(104, 73, 65, .08); font-size: 18px; font-weight: 900; }
+.mission-count.done { background: #e8f1d6; color: #607b3c; }
+.mission-label { position: absolute; left: 13px; right: 13px; bottom: 10px; overflow: hidden; color: #8d7179; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.mission-blue { border-color: #cfe5ee; background: linear-gradient(145deg, #f3fbff, #fffdf9); }
+.mission-blue .mission-icon { background: #dceff6; color: #4f8ca6; }
+.mission-green { border-color: #d9e4c7; background: linear-gradient(145deg, #f6fbea, #fffdf9); }
+.mission-green .mission-icon { background: #e3edcf; color: #688541; }
+.mission-earth { border-color: #ead9c3; background: linear-gradient(145deg, #fff8ed, #fffdf9); }
+.mission-earth .mission-icon { background: #f4e5cd; color: #9c7147; }
+.mission-gold { border-color: #f0dfac; background: linear-gradient(145deg, #fff9e7, #fffdf9); }
+.mission-gold .mission-icon { background: #fff0b8; color: #ad7b20; }
+.mission-purple { border-color: #e2d5ea; background: linear-gradient(145deg, #faf5ff, #fffdf9); }
+.mission-purple .mission-icon { background: #eadcf1; color: #875b9c; }
+
 .goal-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 12px 0 9px; }
 .goal-chip {
   display: flex;
@@ -320,7 +377,32 @@ button:focus-visible, select:focus-visible { outline: 4px solid rgba(217, 91, 12
   animation: flower-bloom .48s cubic-bezier(.18, .78, .25, 1) forwards;
 }
 .tile.obstacle { background: #eee8e1; color: #a6958b; cursor: not-allowed; }
+.tile.task-bud { border-color: #efabc1; background: #fff4f7; box-shadow: inset 0 0 0 3px rgba(238, 162, 188, .18), 0 3px 7px rgba(140, 76, 96, .12); cursor: default; }
+.tile.task-vine { border-color: #9fbe70; background: #f3f8e8; box-shadow: inset 0 0 0 4px rgba(124, 157, 77, .18), 0 3px 7px rgba(77, 104, 47, .13); cursor: default; }
+.tile.task-seed { border-color: #d7bb75; box-shadow: inset 0 0 0 3px rgba(226, 192, 106, .15), 0 3px 7px rgba(119, 91, 37, .12); }
+.tile.blocked-task { cursor: default; }
+.tile.task-bud > img, .tile.task-vine > img { opacity: .72; transform: scale(.93); }
 .stone-piece { display: grid; width: 72%; height: 72%; place-items: center; border-radius: 40% 56% 45% 52%; background: #aca099; color: #f5efea; box-shadow: inset 4px 4px 8px rgba(255, 255, 255, .35), 0 4px 5px rgba(75, 60, 52, .16); }
+.task-marker {
+  position: absolute;
+  z-index: 3;
+  left: 5px;
+  bottom: 5px;
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.94);
+  border-radius: 50%;
+  background: #f6dce6;
+  color: #b94e73;
+  box-shadow: 0 4px 9px rgba(106, 67, 78, .2);
+  pointer-events: none;
+}
+.task-marker svg { width: 16px; height: 16px; }
+.task-marker-vine { background: #dceabe; color: #5d7f34; }
+.task-marker-seed { background: #fff0bd; color: #8a6829; }
+.task-marker small { position: absolute; right: -4px; top: -6px; display: grid; width: 17px; height: 17px; place-items: center; border-radius: 50%; background: #5f7d36; color: white; font-size: 10px; font-weight: 900; }
 .special-badge {
   position: absolute;
   z-index: 2;
@@ -476,11 +558,33 @@ button:focus-visible, select:focus-visible { outline: 4px solid rgba(217, 91, 12
 .stat-icon.tree { background: #e8f0dc; color: var(--green); }
 .garden-stats strong { margin: 4px 0 1px; color: var(--ink); font-size: 28px; }
 .garden-stats small { color: var(--muted); font-size: 13px; }
+.garden-milestones { display: grid; gap: 8px; margin: 15px 0 17px; }
+.garden-milestones > div { display: grid; min-height: 67px; grid-template-columns: 48px 1fr; align-items: center; gap: 11px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 4px 10px rgba(91, 70, 59, .05); }
+.garden-milestones > div > svg { width: 30px; height: 30px; color: #769457; }
+.garden-milestones > div:nth-child(2) > svg { color: #c87696; }
+.garden-milestones > div:nth-child(3) > svg { color: #b78350; }
+.garden-milestones span { display: flex; flex-direction: column; gap: 2px; }
+.garden-milestones small { color: var(--muted); font-size: 12px; }
+.garden-milestones strong { font-size: 17px; }
 .plant-collection { margin: 17px 0; padding: 17px; border: 1px solid var(--line); border-radius: 23px; background: white; box-shadow: 0 5px 12px rgba(91, 70, 59, .06); }
 .collection-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 14px; }
 .collection-row span { display: grid; aspect-ratio: 1; place-items: center; overflow: hidden; border-radius: 14px; background: #fff8f3; }
 .collection-row img { width: 114%; height: 114%; max-width: none; object-fit: contain; }
+.collection-ledger { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 14px; padding-top: 13px; border-top: 1px dashed #eadfd8; }
+.collection-ledger span { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 2px; color: #6f554e; text-align: center; }
+.collection-ledger span.empty { opacity: .48; filter: grayscale(.5); }
+.collection-ledger img { width: 48px; height: 48px; object-fit: contain; }
+.collection-ledger b { overflow: hidden; width: 100%; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.collection-ledger small { font-size: 9px; white-space: nowrap; }
 .empty-collection { margin: 14px 0 0; padding: 13px; border-radius: 15px; background: #faf7f1; color: var(--muted); font-size: 14px; text-align: center; }
+.share-garden-card { display: grid; grid-template-columns: 48px 1fr; gap: 11px; margin: 17px 0; padding: 16px; border: 1px solid #d9e2c6; border-radius: 23px; background: linear-gradient(145deg, #fbfff4, #fffaf5); box-shadow: 0 6px 15px rgba(80, 98, 50, .08); }
+.share-garden-card > span { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 50%; background: #e7efd7; color: #6e874c; }
+.share-garden-card > span svg { width: 26px; height: 26px; }
+.share-garden-card > div { min-width: 0; }
+.share-garden-card small { color: #7a9654; font-size: 11px; font-weight: 900; }
+.share-garden-card h3 { margin: 3px 0 4px; font-size: 17px; line-height: 1.4; }
+.share-garden-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.share-garden-card button { grid-column: 1 / -1; min-height: 52px; border: 0; border-radius: 17px; background: #789650; color: white; box-shadow: 0 6px 12px rgba(74, 101, 44, .17); cursor: pointer; font-size: 15px; font-weight: 900; }
 .avatar-picker { margin: 17px 0; padding: 17px; border: 1px solid var(--line); border-radius: 23px; background: white; box-shadow: 0 5px 12px rgba(91, 70, 59, .06); }
 .section-heading { display: flex; align-items: center; gap: 10px; }
 .section-heading > span { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #f4eaf1; color: #a46c91; }
@@ -505,12 +609,17 @@ button:focus-visible, select:focus-visible { outline: 4px solid rgba(217, 91, 12
 .result-card h2, .settings-sheet h2 { margin: 0 0 9px; color: var(--ink); font-size: 31px; }
 .result-card > p:not(.result-kicker) { color: var(--muted); }
 .result-resources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 15px 0 8px; }
+.result-resources.has-seed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .result-resources span { display: grid; min-height: 68px; grid-template-columns: 25px auto; grid-template-rows: 30px 18px; align-items: center; justify-content: center; column-gap: 5px; border: 1px solid #eadfbd; border-radius: 18px; background: #fff9de; color: #956f24; }
 .result-resources span:nth-child(2) { border-color: #d6e8ef; background: #eef9fd; color: #4f839a; }
+.result-resources span:nth-child(3) { border-color: #d9e3c8; background: #f2f8e8; color: #668342; }
 .result-resources svg { width: 24px; height: 24px; }
 .result-resources b { font-size: 22px; }
 .result-resources small { grid-column: 1 / -1; font-size: 12px; font-weight: 800; text-align: center; }
 .result-card .result-resource-note { margin: 0 0 4px; color: #7d8d59; font-size: 13px; font-weight: 700; }
+.result-card .result-mission-done { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin: 5px 0 0; padding: 7px 12px; border-radius: 16px; background: #f5ebf0; color: #a85470; font-size: 13px; font-weight: 900; }
+.result-mission-done svg { width: 18px; height: 18px; }
+.result-card .result-daily-note { margin: 8px 0 0; color: #8a765f; font-size: 12px; font-weight: 700; }
 .new-record { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 8px 14px; border-radius: 18px; background: #fff1c7; color: #9a6c19; font-size: 14px; font-weight: 800; }
 .primary-action.compact { display: flex; min-height: 64px; justify-content: center; margin-top: 20px; font-size: 19px; font-weight: 800; text-align: center; }
 .secondary-result { display: flex; width: 100%; min-height: 57px; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; border: 2px solid #d98499; border-radius: 19px; background: #fff5f7; color: #b64f69; cursor: pointer; font-size: 17px; font-weight: 800; }

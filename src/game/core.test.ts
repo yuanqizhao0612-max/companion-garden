@@ -4,6 +4,7 @@ import type { Tile, TileKind } from '../types'
 import {
   attemptSwap,
   collapseMatches,
+  countClearedFeatures,
   createBoard,
   createPlayableBoard,
   createLevelBoard,
@@ -11,7 +12,9 @@ import {
   findMatches,
   hasAvailableMove,
   hitAdjacentObstacles,
+  hitAdjacentFeatures,
   isAdjacent,
+  isTaskBlocked,
   makeTile,
   placeCreatedSpecials,
   reshuffleIfNeeded,
@@ -95,6 +98,47 @@ describe('V0.2 strategy pieces and obstacles', () => {
 
     expect(resolved[8].special).toBe('stripe-row')
     expect([6, 7, 8, 9].every((index) => resolved[index].id !== board[index].id)).toBe(true)
+  })
+})
+
+describe('V0.4 garden task pieces', () => {
+  it('places visible mission pieces without restoring gray stone obstacles', () => {
+    const board = createLevelBoard([], [], () => 0.42, {
+      kind: 'bud',
+      label: '打开花苞',
+      description: '在旁边消除',
+      target: 2,
+      positions: [14, 21],
+    })
+    expect(board.filter((tile) => tile.feature === 'bud')).toHaveLength(2)
+    expect(board.some((tile) => tile.obstacle)).toBe(false)
+    expect(isTaskBlocked(board[14])).toBe(true)
+  })
+
+  it('opens a bud after one adjacent clear', () => {
+    const board = baseBoard()
+    board[14] = { ...board[14], feature: 'bud', featureHits: 1 }
+    const result = hitAdjacentFeatures(board, new Set([13]))
+    expect(result.completed).toBe(1)
+    expect(result.board[14].feature).toBeUndefined()
+  })
+
+  it('loosens a vine gradually across two nearby clears', () => {
+    const board = baseBoard()
+    board[14] = { ...board[14], feature: 'vine', featureHits: 2 }
+    const first = hitAdjacentFeatures(board, new Set([13]))
+    expect(first.completed).toBe(0)
+    expect(first.board[14].featureHits).toBe(1)
+    const second = hitAdjacentFeatures(first.board, new Set([20]))
+    expect(second.completed).toBe(1)
+    expect(second.board[14].feature).toBeUndefined()
+  })
+
+  it('counts a tree seed only when its flower is cleared', () => {
+    const board = baseBoard()
+    board[8] = { ...board[8], feature: 'seed', featureHits: 1 }
+    expect(countClearedFeatures(board, new Set([7]), 'seed')).toBe(0)
+    expect(countClearedFeatures(board, new Set([8]), 'seed')).toBe(1)
   })
 })
 

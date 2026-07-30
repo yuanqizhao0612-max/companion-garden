@@ -16,12 +16,31 @@ export type GardenState = {
   waterDrops: number
   pendingCare: number
   activePlantStage: 0 | 1 | 2 | 3
+  treeSeeds: number
+  keepsakes: number
+  dailyChallenge: {
+    date: string | null
+    progress: number
+    target: number
+    rewarded: boolean
+  }
   pathStage: number
   playerAvatar: { styleId: string; position: string }
   familyMembers: Array<{ id: string; relation: string; styleId: string }>
 }
 
 export type TileKind = 'peach' | 'daisy' | 'leaf' | 'berry' | 'bell'
+
+export type MissionKind = 'water' | 'bud' | 'vine' | 'seed' | 'special' | 'combo'
+
+export type GardenMission = {
+  kind: MissionKind
+  label: string
+  description: string
+  target: number
+  positions?: number[]
+  hits?: number
+}
 
 export type Tile = {
   id: number
@@ -31,6 +50,8 @@ export type Tile = {
   obstacle?: 'stone'
   obstacleHits?: number
   cover?: number
+  feature?: 'bud' | 'vine' | 'seed'
+  featureHits?: number
 }
 
 export type LevelConfig = {
@@ -39,6 +60,7 @@ export type LevelConfig = {
   description: string
   moves: number
   goals: Partial<Record<TileKind, number>>
+  mission: GardenMission
   obstacles: number[]
   covers: number[]
   hint: string

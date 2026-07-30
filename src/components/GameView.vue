@@ -2,11 +2,11 @@
 import { computed, ref, watch } from 'vue'
 import {
   PhArrowRight, PhArrowUUpLeft, PhArrowsOutLineHorizontal, PhArrowsOutLineVertical,
-  PhDrop, PhFlowerLotus, PhHouseLine, PhLightbulb, PhPersonSimpleWalk, PhShuffleAngular,
-  PhSparkle, PhStar, PhTarget,
+  PhDrop, PhFlowerLotus, PhHouseLine, PhLightbulb, PhPersonSimpleWalk, PhPlant,
+  PhShuffleAngular, PhSparkle, PhStar, PhTarget, PhTree,
 } from '@phosphor-icons/vue'
 import { getBloomFlower, getBloomStage, publicAsset, TILE_META, WARM_WORDS } from '../data'
-import { garden, recordAttempt, recordSuccess } from '../composables/useGarden'
+import { garden, getDailyChallenge, recordAttempt, recordSuccess } from '../composables/useGarden'
 import { useMatchGame } from '../composables/useMatchGame'
 import type { Tile } from '../types'
 
@@ -16,22 +16,38 @@ const game = useMatchGame(playedLevel.value)
 const resultRecorded = ref(false)
 const newHighest = ref(false)
 const warmWord = ref(WARM_WORDS[Math.floor(Math.random() * WARM_WORDS.length)])
-const goalLeft = computed(() => Math.max(0, game.target.value - game.collectedTotal.value))
+const goalLeft = computed(() => game.remainingGoals.value.reduce((sum, goal) => sum + Math.max(0, goal.amount - goal.current), 0))
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
 const successFlower = computed(() => getBloomFlower(playedLevel.value))
 const successBloomStage = computed(() => getBloomStage(playedLevel.value))
 const retryFlower = TILE_META.berry.image
 const bloomSpirit = publicAsset('assets/effects/bloom-spirit-v3.png')
+const dailyChallenge = computed(() => getDailyChallenge(garden))
 const specialMeta: Record<NonNullable<Tile['special']>, { name: string; icon: typeof PhSparkle }> = {
   'stripe-row': { name: '横向柔光花', icon: PhArrowsOutLineHorizontal },
   'stripe-column': { name: '纵向柔光花', icon: PhArrowsOutLineVertical },
   rainbow: { name: '彩虹花', icon: PhSparkle },
   bouquet: { name: '花束花', icon: PhFlowerLotus },
 }
+const missionMeta = {
+  water: { icon: PhDrop, tone: 'blue' },
+  bud: { icon: PhFlowerLotus, tone: 'pink' },
+  vine: { icon: PhPlant, tone: 'green' },
+  seed: { icon: PhTree, tone: 'earth' },
+  special: { icon: PhSparkle, tone: 'gold' },
+  combo: { icon: PhArrowsOutLineHorizontal, tone: 'purple' },
+} as const
+const taskFeatureMeta: Record<NonNullable<Tile['feature']>, { name: string; icon: typeof PhSparkle }> = {
+  bud: { name: '等待开放的花苞', icon: PhFlowerLotus },
+  vine: { name: '需要逐步松开的藤蔓', icon: PhPlant },
+  seed: { name: '藏着树种的花', icon: PhTree },
+}
 
 watch(game.status, (status) => {
   if (status === 'playing' || resultRecorded.value) return
-  newHighest.value = status === 'goalReached' ? recordSuccess(playedLevel.value) : false
+  newHighest.value = status === 'goalReached'
+    ? recordSuccess(playedLevel.value, { treeSeeds: game.mission.value.kind === 'seed' ? 1 : 0 })
+    : false
   if (status === 'journeyComplete') recordAttempt()
   resultRecorded.value = true
 })
@@ -46,6 +62,7 @@ function startLevel(level: number) {
 
 function previewWin() {
   game.remainingGoals.value.forEach(({ kind, amount }) => { game.collected.value[kind] = amount })
+  game.missionProgress.value = game.mission.value.target
   game.status.value = 'goalReached'
 }
 
@@ -62,6 +79,17 @@ function previewSpecials() {
   })
   game.message.value = '特别花用方向图标提示效果，不再遮住花朵'
 }
+
+function tileAriaLabel(tile: Tile, index: number) {
+  const position = `第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列`
+  if (tile.obstacle) return `石块，${position}`
+  const details = [
+    TILE_META[tile.kind].name,
+    tile.feature ? taskFeatureMeta[tile.feature].name : '',
+    tile.special ? specialMeta[tile.special].name : '',
+  ].filter(Boolean).join('，')
+  return `${details}，${position}`
+}
 </script>
 
 <template>
@@ -73,8 +101,21 @@ function previewSpecials() {
       <i></i>
       <div><PhPersonSimpleWalk weight="fill" /><span>剩余步数 <strong class="accent">{{ game.moves.value }}</strong></span></div>
       <i></i>
-      <div><PhStar weight="fill" /><span>目标 <strong class="accent">{{ game.target.value }}</strong></span></div>
+      <div><PhFlowerLotus weight="fill" /><span>任务 <strong class="accent">1</strong></span></div>
     </div>
+
+    <section class="mission-card" :class="`mission-${missionMeta[game.mission.value.kind].tone}`" aria-labelledby="mission-title">
+      <span class="mission-icon"><component :is="missionMeta[game.mission.value.kind].icon" weight="fill" /></span>
+      <div>
+        <small>今天帮小院完成</small>
+        <h3 id="mission-title">{{ game.config.value.title }}</h3>
+        <p>{{ game.config.value.description }}</p>
+      </div>
+      <span class="mission-count" :class="{ done: game.remainingMission.value.done }">
+        {{ game.remainingMission.value.current }}/{{ game.remainingMission.value.target }}
+      </span>
+      <strong class="mission-label">{{ game.mission.value.label }} · {{ game.mission.value.description }}</strong>
+    </section>
 
     <div class="goal-list" aria-label="本关收集目标">
       <div v-for="goal in game.remainingGoals.value" :key="goal.kind" class="goal-chip" :class="{ done: goal.current >= goal.amount }">
@@ -85,7 +126,7 @@ function previewSpecials() {
 
     <div class="progress-track" role="progressbar" :aria-valuenow="game.collectedTotal.value" aria-valuemin="0" :aria-valuemax="game.target.value">
       <div class="progress-fill" :style="{ width: `${game.progress.value}%` }"></div>
-      <span>{{ goalLeft ? `还差 ${goalLeft} 朵` : '完成啦' }}</span>
+      <span>{{ game.remainingMission.value.done ? (goalLeft ? `花园任务完成，还差 ${goalLeft} 朵花` : '今天的小院任务完成啦') : `${game.mission.value.label} ${game.remainingMission.value.current}/${game.remainingMission.value.target}` }}</span>
     </div>
 
     <p class="game-message" aria-live="polite">{{ game.message.value }}</p>
@@ -124,23 +165,29 @@ function previewSpecials() {
           :key="tile.id"
           class="tile"
           :class="[
-            `tile-${tile.kind}`, tile.special ? `special-${tile.special}` : '',
+            `tile-${tile.kind}`, tile.special ? `special-${tile.special}` : '', tile.feature ? `task-${tile.feature}` : '',
             {
               selected: game.selected.value === index,
               removing: tile.removing,
               obstacle: tile.obstacle,
+              'blocked-task': tile.feature === 'bud' || tile.feature === 'vine',
               invalid: game.invalidTiles.value.includes(index),
               swapping: game.swappingTiles.value.includes(index),
             }
           ]"
           :data-kind="tile.kind"
-          :aria-label="tile.obstacle ? `石块，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列` : `${TILE_META[tile.kind].name}${tile.special ? `，${specialMeta[tile.special].name}` : ''}，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列`"
+          :aria-label="tileAriaLabel(tile, index)"
+          :aria-disabled="tile.obstacle || tile.feature === 'bud' || tile.feature === 'vine'"
           @click="game.choose(index)"
         >
           <span v-if="tile.obstacle" class="stone-piece" aria-hidden="true"></span>
           <img v-else :src="TILE_META[tile.kind].image" alt="" draggable="false" />
           <span v-if="tile.special" class="special-badge" aria-hidden="true">
             <component :is="specialMeta[tile.special].icon" weight="bold" />
+          </span>
+          <span v-if="tile.feature" class="task-marker" :class="`task-marker-${tile.feature}`" aria-hidden="true">
+            <component :is="taskFeatureMeta[tile.feature].icon" weight="fill" />
+            <small v-if="tile.feature === 'vine'">{{ tile.featureHits }}</small>
           </span>
         </button>
       </div>
@@ -170,11 +217,14 @@ function previewSpecials() {
           <p class="result-kicker">陪伴花 · 第 {{ successBloomStage }} 阶段</p>
           <h2 id="win-title">花瓣又打开了一点</h2>
           <p>{{ warmWord }}，第 {{ playedLevel }} 关的心意已经留下。</p>
-          <div class="result-resources" aria-label="本关获得的成长资源">
+          <p class="result-mission-done"><PhFlowerLotus weight="fill" />完成：{{ game.mission.value.label }}</p>
+          <div class="result-resources" :class="{ 'has-seed': game.mission.value.kind === 'seed' }" aria-label="本关获得的成长资源">
             <span><PhStar weight="fill" /><b>+30</b><small>阳光</small></span>
             <span><PhDrop weight="fill" /><b>+1</b><small>水滴</small></span>
+            <span v-if="game.mission.value.kind === 'seed'"><PhTree weight="fill" /><b>+1</b><small>树种</small></span>
           </div>
           <p class="result-resource-note">带回花园，亲手照顾正在长大的植物。</p>
+          <p class="result-daily-note">今日轻任务 {{ dailyChallenge.progress }}/{{ dailyChallenge.target }} · {{ dailyChallenge.rewarded ? '纪念物已经收好' : '慢慢来就很好' }}</p>
           <span v-if="newHighest" class="new-record"><PhStar weight="fill" />新的最高纪录</span>
           <button class="primary-action compact" @click="startLevel(garden.currentLevel)">下一关<PhArrowRight /></button>
           <button class="secondary-result" @click="emit('garden')"><PhHouseLine weight="fill" />看看花园</button>

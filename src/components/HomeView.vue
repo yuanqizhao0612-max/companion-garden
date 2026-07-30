@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PhArrowRight, PhCalendarDots, PhFlowerLotus, PhHouseLine, PhPlay, PhSparkle } from '@phosphor-icons/vue'
-import { garden } from '../composables/useGarden'
+import { PhArrowRight, PhCalendarDots, PhFlowerLotus, PhHouseLine, PhPlay, PhSparkle, PhTree } from '@phosphor-icons/vue'
+import { garden, getDailyChallenge } from '../composables/useGarden'
 import { getBloomFlower, getBloomStage, publicAsset } from '../data'
 
 defineEmits<{ start: []; garden: [] }>()
@@ -9,6 +9,7 @@ defineEmits<{ start: []; garden: [] }>()
 const heroImage = publicAsset('assets/scenes/home-art-garden-v4.webp')
 const bloomStage = computed(() => getBloomStage(garden.currentLevel))
 const bloomFlower = computed(() => getBloomFlower(garden.currentLevel))
+const dailyChallenge = computed(() => getDailyChallenge(garden))
 const gardenHint = computed(() => garden.pendingCare
   ? `有 ${garden.pendingCare} 次照顾正在等你`
   : '完成一局，带回阳光和水滴')
@@ -27,7 +28,7 @@ const greeting = computed(() => {
       <div class="welcome-copy">
         <p class="day-note"><PhSparkle weight="fill" />{{ greeting }}，花园一直在等你</p>
         <h2 id="welcome-title">今天，也来<br /><em>种一朵花</em>吧</h2>
-        <p>完成一局，带回阳光和水滴，亲手照顾小院。</p>
+        <p>完成一件小院任务，带回阳光、水滴和成长故事。</p>
       </div>
       <div class="companion-speech">
         <PhFlowerLotus weight="fill" />
@@ -40,6 +41,19 @@ const greeting = computed(() => {
       <div><small>继续第 {{ garden.currentLevel }} 关</small><strong>开始今天</strong></div>
       <PhArrowRight />
     </button>
+
+    <section class="daily-mission-card" aria-labelledby="daily-mission-title">
+      <span class="daily-mission-icon"><PhTree weight="fill" /></span>
+      <div>
+        <small>今日轻任务 · 不着急</small>
+        <h3 id="daily-mission-title">完成 2 件小院任务</h3>
+        <p>{{ dailyChallenge.rewarded ? '今天的纪念物已经收好，明天再来看看。' : '每完成一关，就向前走一步。' }}</p>
+      </div>
+      <strong>{{ dailyChallenge.progress }}/{{ dailyChallenge.target }}</strong>
+      <div class="daily-progress" role="progressbar" :aria-valuenow="dailyChallenge.progress" aria-valuemin="0" :aria-valuemax="dailyChallenge.target">
+        <i :style="{ width: `${dailyChallenge.progress / dailyChallenge.target * 100}%` }"></i>
+      </div>
+    </section>
 
     <div class="home-bloom-card">
       <span class="home-bloom-art"><img :src="bloomFlower" :alt="`陪伴花第 ${bloomStage} 阶段`" /></span>
