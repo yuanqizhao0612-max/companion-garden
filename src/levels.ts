@@ -9,12 +9,12 @@ const level = (
   obstacles: number[] = [],
   covers: number[] = [],
   hint = '先看看棋盘，再决定第一步',
-): LevelConfig => ({ level, title, description, moves, goals, obstacles, covers, hint })
+): LevelConfig => ({ level, title, description, moves, goals, obstacles, covers: [], hint })
 
 export const LEVELS: LevelConfig[] = [
   level(1, '认识花朵', '收集桃花与雏菊，完成第一束花', 24, { peach: 15, daisy: 12 }, [], [], '试着让三朵相同的花连成一线'),
-  level(2, '两种心意', '同时照顾两种花，留意下一步', 25, { leaf: 18, bell: 15 }, [], [14, 21], '盖着晨露的花需要消除两次'),
-  level(3, '清晨花圃', '先打开覆盖，再收集目标花', 25, { peach: 20, berry: 16 }, [], [8, 9, 14, 15], '先消除带浅色边框的花'),
+  level(2, '两种心意', '同时照顾两种花，留意下一步', 25, { leaf: 18, bell: 15 }, [], [14, 21], '先从数量最多的花开始'),
+  level(3, '清晨花圃', '观察花朵分布，再收集目标花', 25, { peach: 20, berry: 16 }, [], [8, 9, 14, 15], '先找容易连成一线的目标花'),
   level(4, '石径初现', '绕开石块，规划一到两步', 27, { daisy: 23, leaf: 18 }, [14, 15], [], '在石块旁消除，就能松动石块'),
   level(5, '花间小路', '清理石块，为花朵让出空间', 28, { peach: 25, bell: 21 }, [8, 14, 20, 26], [], '四连会留下能清整行或整列的条纹花'),
   level(6, '双树之间', '兼顾目标与障碍清理顺序', 29, { berry: 27, daisy: 23 }, [13, 16, 19, 22], [8, 27], '先打开中央通路，再制造连锁'),

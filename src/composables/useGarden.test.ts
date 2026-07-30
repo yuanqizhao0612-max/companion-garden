@@ -29,7 +29,7 @@ describe('garden progress', () => {
     expect(state.currentLevel).toBe(2)
     expect(state.highestLevel).toBe(1)
     expect(state.completedRounds).toBe(1)
-    expect(state.flowerCount).toBe(3)
+    expect(state.flowerCount).toBe(1)
   })
 
   it('does not advance after an unfinished round', () => {
@@ -38,7 +38,7 @@ describe('garden progress', () => {
     expect(state.currentLevel).toBe(1)
     expect(state.highestLevel).toBe(0)
     expect(state.attemptedRounds).toBe(1)
-    expect(state.flowerCount).toBe(2)
+    expect(state.flowerCount).toBe(0)
   })
 
   it('counts consecutive calendar days', () => {
@@ -60,8 +60,17 @@ describe('garden progress', () => {
   it('adds a lasting flower item after success', () => {
     const state = freshState()
     applySuccess(state, 1, new Date(2026, 6, 27))
-    expect(state.flowerItems).toHaveLength(3)
+    expect(state.flowerItems).toHaveLength(1)
     expect(state.flowerItems.at(-1)?.earnedAt).toBe('2026-07-27')
+  })
+
+  it('starts with an empty garden and adds exactly one flower cluster per success', () => {
+    const state = freshState()
+    expect(state.flowerItems).toHaveLength(0)
+    applySuccess(state, 1, new Date(2026, 6, 27))
+    applySuccess(state, 2, new Date(2026, 6, 27))
+    expect(state.flowerItems).toHaveLength(2)
+    expect(state.flowerCount).toBe(2)
   })
 
   it('grows the house, trees and path gradually', () => {

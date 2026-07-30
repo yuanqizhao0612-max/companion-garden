@@ -112,7 +112,6 @@ function previewLoss() {
               selected: game.selected.value === index,
               removing: tile.removing,
               obstacle: tile.obstacle,
-              covered: tile.cover,
               invalid: game.invalidTiles.value.includes(index),
               swapping: game.swappingTiles.value.includes(index),
             }

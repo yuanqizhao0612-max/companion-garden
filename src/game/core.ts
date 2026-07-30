@@ -162,14 +162,13 @@ export function collapseMatches(
   return next
 }
 
-export function createLevelBoard(obstacles: number[] = [], covers: number[] = [], random: () => number = Math.random) {
+export function createLevelBoard(obstacles: number[] = [], _covers: number[] = [], random: () => number = Math.random) {
   let board = createPlayableBoard(random)
   board = board.map((tile, index) => ({
     ...tile,
     ...(obstacles.includes(index) ? { obstacle: 'stone' as const, obstacleHits: 1 } : {}),
-    ...(covers.includes(index) ? { cover: 2 } : {}),
   }))
-  return hasAvailableMove(board) ? board : createLevelBoard(obstacles, covers, random)
+  return hasAvailableMove(board) ? board : createLevelBoard(obstacles, [], random)
 }
 
 export function specialForGroup(group: number[]) {
@@ -180,6 +179,20 @@ export function specialForGroup(group: number[]) {
       : 'stripe-column' as const
   }
   return undefined
+}
+
+export type SpecialCreation = {
+  kind: TileKind
+  special: NonNullable<Tile['special']>
+}
+
+export function placeCreatedSpecials(board: Tile[], creations: Map<number, SpecialCreation>) {
+  if (!creations.size) return board
+  const next = [...board]
+  for (const [index, creation] of creations) {
+    next[index] = { ...makeTile(creation.kind), special: creation.special }
+  }
+  return next
 }
 
 export function expandSpecials(board: Tile[], matches: Set<number>) {

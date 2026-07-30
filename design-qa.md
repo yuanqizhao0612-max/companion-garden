@@ -1,78 +1,67 @@
-# 《陪伴花园》V0.4 视觉实现 QA
+# 《陪伴花园》V0.5 修复与花园成长 QA
 
 ## 对比基准
 
 - Source visual truth:
-  - `/Users/zhaokaixin/Desktop/关于游戏的想法.docx`
-  - `/tmp/about-game-docx-render.waVViV/page-1.png`
-  - `/tmp/about-game-refs.EBSANM/image4.jpg`
-  - `/tmp/about-game-refs.EBSANM/image6.jpg`
-- Implementation screenshots:
-  - `artifacts/v04/home-mobile.png`
-  - `artifacts/v04/game-mobile.png`
-  - `artifacts/v04/result-mobile.png`
-  - `artifacts/v04/garden-mobile.png`
+  - `/Users/zhaokaixin/Downloads/花园风格分阶段设计图.png`
+  - `/Users/zhaokaixin/Desktop/陪伴花园/微信图片_20260729212225_487_219.jpg`
+  - `/var/folders/94/qszq6c4d62g45gpvd9sc6x880000gn/T/codex-clipboard-1b9fcd4f-6503-44ee-b5c5-456d765c7332.png`
+- Browser-rendered implementation screenshots:
+  - `artifacts/v05/game-mobile.png`
+  - `artifacts/v05/garden-empty-mobile-top.png`
+  - `artifacts/v05/garden-grown-mobile-top.png`
 - Combined comparison evidence:
-  - `artifacts/v04/design-qa-overview.png`
-  - `artifacts/v04/qa-home-comparison.png`
-  - `artifacts/v04/qa-garden-comparison.png`
-  - `artifacts/v04/qa-result-comparison.png`
-- State: current saved garden progress; level 9; successful level-completion preview; garden growth stage 5.
+  - `artifacts/v05/comparison-empty-garden.png`
+  - `artifacts/v05/comparison-grown-garden.png`
 
 ## Capture normalization
 
 - Browser: Codex in-app browser.
-- Browser viewport: 800 × 1000 CSS px, device scale factor 1.
-- Product shell: centered, maximum 520 CSS px.
-- Source pixels: homepage page render 1300 × 1682; garden reference 928 × 1232; growth reference 853 × 853.
-- Implementation pixels: home 330 × 1160; game 520 × 1080; result 520 × 878; garden 330 × 1600.
-- Density normalization: source and implementation images were proportionally downsampled into equal comparison panels without stretching. The generated art kept its native aspect ratio and crop.
+- Browser viewport: 1280 × 720 CSS px, device scale factor 1.
+- Product shell: centered 520 CSS px mobile canvas.
+- Implementation screenshots: 520 × 1059 full game page; 520 × 720 garden first-screen captures.
+- Comparison panels: two equal 520 × 720 panels separated by a 16 px neutral gutter.
+- The source and implementation panels were resized with proportional cover crops; neither panel was stretched.
 
-## Findings
+## Findings and fixes
 
-- No actionable P0/P1/P2 findings remain.
-- [P3] The garden page is intentionally longer than one phone viewport because it includes growth statistics, avatar selection, element meanings, and the next-play action. The primary growth scene and companion flower remain above the fold.
+1. Pale-blue flower frames — resolved.
+   - Cause: the old covered-tile obstacle used a pale-blue `::after` frame without explaining the mechanic.
+   - Fix: removed the cover mechanic, level cover data, and frame styling.
+   - Browser audit: 36 tiles rendered; `.tile.covered` count 0; tile pseudo-frame count 0.
+2. Four-in-a-row visually clearing only three flowers — resolved.
+   - Cause: the reward-special anchor was removed from the clear set before the removal animation.
+   - Fix: every matched tile now completes the remove/collapse phase; the special reward is placed afterward at the anchor.
+   - Regression evidence: the four matched tile IDs all change before the special tile is created.
+3. Garden starting with flowers — resolved.
+   - Fresh state now contains 0 flower clusters.
+   - Each successful level adds exactly one cluster.
+   - Legacy welcome flowers are filtered during state normalization.
+4. Preview-stage label mismatch — resolved.
+   - Stage 1 now shows `成长第 1 阶段`, 0 flower overlays, and `完成第一关，这里会长出第一簇花`.
+   - Stage 5 shows `成长第 5 阶段`, 18 preview overlays, and matching progress copy.
 
-## Required fidelity surfaces
+## Visual fidelity
 
-- Fonts and typography: Chinese display copy uses a strong, elderly-readable hierarchy; body copy remains at comfortable optical weights; no unintended truncation remains.
-- Spacing and layout rhythm: 22 px outer spacing, 24–34 px card radii, restrained shadows, and consistent vertical grouping match the soft premium direction.
-- Colors and visual tokens: warm ivory, blossom pink, leaf green, and muted brown are consistently mapped across home, game, result, and garden states.
-- Image quality and asset fidelity: the homepage magnolia/flower-person scene, miniature garden, and five transparent flower-growth stages are production assets, not placeholders or CSS approximations. Crops are sharp and preserve the intended subjects.
-- Copy and content: “欢迎来到陪伴花园”, “花瓣又打开了一点”, and the non-failure retry language match the attachment’s companionship and gradual-growth concept.
-
-## Full-view comparison evidence
-
-- Homepage preserves the reference’s pink artistic poster feeling while turning the large magnolia and flower person into the interactive entry scene.
-- Garden reproduces the soft miniature 3D cottage language and expands it into a denser, visibly cared-for flower field.
-- Result feedback uses the reference pink bud as a persistent growth reward rather than a generic score badge.
-
-## Focused comparison evidence
-
-- Homepage focal region: generated magnolia petal translucency, warm pink atmosphere, flower-person proportions, headline contrast, and speech bubble were checked together in `qa-home-comparison.png`.
-- Garden focal region: cottage roof, rounded trees, stepping stones, foreground tulips/roses/daisies/sunflowers, and character scale were checked in `qa-garden-comparison.png`.
-- Completion focal region: bud silhouette, pink material, yellow stamens, green leaves, transparent edge quality, and modal scale were checked in `qa-result-comparison.png`.
-
-## Comparison history
-
-1. Initial implementation review found a P2 compact-header overflow risk at phone width: the English eyebrow could compete with the settings control.
-2. Fix applied: the brand group now flexes safely, inner copy can shrink, the eyebrow truncates gracefully, the title is slightly tightened, and the settings control has a fixed 52 px slot.
-3. Post-fix evidence: the final homepage, game, result, and garden screenshots show the complete brand lockup and settings control with no horizontal overflow.
+- Empty-garden comparison preserves the supplied miniature 3D cottage, soft green hills, rounded trees, peach roof, blue sky, and a generous flower-free lawn.
+- Growth comparison extends the supplied tulip style into coral, yellow, cream, rose, and lavender clusters with matching soft 3D material and lighting.
+- Added clusters occupy the lawn without covering the cottage entrance or stage badge.
+- The game board retains large, shape-distinct flower pieces and no unexplained pale-blue overlays.
 
 ## Interaction and runtime checks
 
-- Tested: homepage → start game → successful completion preview → garden.
-- Tested: game board rendering, level controls, completion dialog, next-level and garden actions.
-- Browser console errors/warnings: none.
+- Tested homepage → game → return → garden.
+- Tested development level selector and stage 1 / stage 5 garden previews.
+- Tested empty garden count (0) and grown preview count (18).
+- Tested no covered-tile DOM classes or pseudo-frame styling.
+- Browser console errors/warnings: none observed.
+- Automated regression suite: 32 tests passed.
+- Production build: passed.
 
-## Implementation checklist
+## Comparison history
 
-- [x] Artistic pink homepage with a large flower and welcoming companion.
-- [x] Distinct 3D flower pieces and high-contrast six-by-six board.
-- [x] Five-stage companion flower growth.
-- [x] Growth-based completion feedback.
-- [x] Soft miniature 3D garden.
-- [x] Responsive phone layout and keyboard-visible focus treatment.
-- [x] Test, type-check, production build, and browser interaction pass.
+1. First implementation pass correctly showed 0 flowers in stage 1, but its badge still reflected the old saved stage 5.
+2. The badge and progress note were made preview-aware.
+3. The final browser capture shows stage 1 with an empty lawn and stage 5 with matching flower quantity and copy.
 
 final result: passed

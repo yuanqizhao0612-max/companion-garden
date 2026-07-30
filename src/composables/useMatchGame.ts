@@ -10,7 +10,9 @@ import {
   findMatches,
   hasAvailableMove,
   hitAdjacentObstacles,
+  placeCreatedSpecials,
   specialForGroup,
+  type SpecialCreation,
 } from '../game/core'
 import { classifyMatchFeedback, type MatchFeedback } from '../game/feedback'
 import type { Tile, TileKind } from '../types'
@@ -54,24 +56,27 @@ export function useMatchGame(initialLevel: number) {
       chain += 1
       const groups = findMatchGroups(board.value)
       let expanded = expandSpecials(board.value, matches)
-      const creation = new Map<number, Tile['special']>()
+      const creation = new Map<number, SpecialCreation>()
 
       if (!forced.size) {
         const horizontal = groups.filter((group) => Math.floor(group[0] / 6) === Math.floor(group[1] / 6))
         const vertical = groups.filter((group) => group[1] - group[0] === 6)
         for (const h of horizontal) for (const v of vertical) {
           const intersection = h.find((index) => v.includes(index))
-          if (intersection !== undefined) creation.set(intersection, 'bouquet')
+          if (intersection !== undefined) {
+            creation.set(intersection, { kind: board.value[intersection].kind, special: 'bouquet' })
+          }
         }
         for (const group of groups) {
           const special = specialForGroup(group)
-          if (special && !creation.size) creation.set(group[Math.floor(group.length / 2)], special)
+          if (special && !creation.size) {
+            const index = group[Math.floor(group.length / 2)]
+            creation.set(index, { kind: board.value[index].kind, special })
+          }
         }
       }
 
-      for (const index of creation.keys()) expanded.delete(index)
-      const covered = new Set([...expanded].filter((index) => (board.value[index]?.cover ?? 0) > 1))
-      const removable = new Set([...expanded].filter((index) => !board.value[index]?.obstacle && !covered.has(index)))
+      const removable = new Set([...expanded].filter((index) => !board.value[index]?.obstacle))
       const matchSize = groups.length
         ? Math.max(...groups.map((group) => group.length))
         : Math.min(5, Math.max(3, removable.size))
@@ -79,8 +84,6 @@ export function useMatchGame(initialLevel: number) {
       feedback.value = { id: ++feedbackId, ...feedbackDetail }
 
       board.value = board.value.map((tile, index) => {
-        if (covered.has(index)) return { ...tile, cover: 1 }
-        if (creation.has(index)) return { ...tile, special: creation.get(index), cover: undefined }
         return removable.has(index) ? { ...tile, removing: true } : tile
       })
 
@@ -91,7 +94,7 @@ export function useMatchGame(initialLevel: number) {
       board.value = hitAdjacentObstacles(board.value, removable)
       audio.match(chain, matchSize)
 
-      const specialName = [...creation.values()][0]
+      const specialName = [...creation.values()][0]?.special
       if (specialName === 'rainbow') message.value = '彩虹花出现了，下一步由你决定'
       else if (specialName === 'bouquet') message.value = '花束开了，会清除周围一圈'
       else if (specialName) message.value = '条纹花出现了，可以清除一整线'
@@ -99,6 +102,7 @@ export function useMatchGame(initialLevel: number) {
 
       await pause(matchSize >= 5 ? 620 : matchSize === 4 ? 520 : 430)
       board.value = collapseMatches(board.value, removable)
+      board.value = placeCreatedSpecials(board.value, creation)
       await pause(280)
       forced = new Set()
       matches = findMatches(board.value)

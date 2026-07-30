@@ -13,6 +13,7 @@ import {
   hitAdjacentObstacles,
   isAdjacent,
   makeTile,
+  placeCreatedSpecials,
   reshuffleIfNeeded,
   specialForGroup,
 } from './core'
@@ -75,11 +76,25 @@ describe('V0.2 strategy pieces and obstacles', () => {
     expect(hitAdjacentObstacles(board, new Set([6]))[7].obstacle).toBeUndefined()
   })
 
-  it('creates configured stones and covered flowers', () => {
+  it('creates configured stones without unexplained flower covers', () => {
     const board = createLevelBoard([7], [14])
     expect(board[7].obstacle).toBe('stone')
-    expect(board[14].cover).toBe(2)
+    expect(board[14].cover).toBeUndefined()
     expect(hasAvailableMove(board)).toBe(true)
+  })
+
+  it('removes all four matched flowers before placing the reward flower', () => {
+    const board = withKinds({ 6: 'berry', 7: 'berry', 8: 'berry', 9: 'berry' })
+    const matches = findMatches(board)
+    expect(matches).toEqual(new Set([6, 7, 8, 9]))
+
+    const collapsed = collapseMatches(board, matches, () => makeTile('daisy'))
+    const resolved = placeCreatedSpecials(collapsed, new Map([
+      [8, { kind: 'berry', special: 'stripe-row' as const }],
+    ]))
+
+    expect(resolved[8].special).toBe('stripe-row')
+    expect([6, 7, 8, 9].every((index) => resolved[index].id !== board[index].id)).toBe(true)
   })
 })
 

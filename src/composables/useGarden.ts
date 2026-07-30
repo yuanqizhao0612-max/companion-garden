@@ -12,16 +12,13 @@ export const DEFAULT_GARDEN_STATE: GardenState = {
   highestLevel: 0,
   completedRounds: 0,
   attemptedRounds: 0,
-  flowerCount: 2,
+  flowerCount: 0,
   streakDays: 0,
   lastPlayedDate: null,
   gardenLevel: 1,
   houseStage: 1,
   treeStages: { memoryTree: 1, familyTree: 1 },
-  flowerItems: [
-    { id: 'welcome-peach', type: 'peach', earnedAt: '初见' },
-    { id: 'welcome-daisy', type: 'daisy', earnedAt: '初见' },
-  ],
+  flowerItems: [],
   pathStage: 1,
   playerAvatar: { styleId: 'coral', position: 'door' },
   familyMembers: [],
@@ -43,12 +40,20 @@ const safeStorage = (): StorageLike | undefined => {
 }
 
 export function normalizeGardenState(value: Partial<GardenState> & Record<string, unknown> = {}): GardenState {
+  const savedFlowerItems = Array.isArray(value.flowerItems)
+    ? (value.flowerItems as GardenState['flowerItems']).filter(({ id }) => !id.startsWith('welcome-'))
+    : Array.from({ length: Math.max(0, Number(value.flowerCount ?? value.flowers ?? 0) - 2) }, (_, index) => ({
+        id: `legacy-${index}`,
+        type: (['peach', 'daisy', 'bell'] as const)[index % 3],
+        earnedAt: '既有花朵',
+      }))
+
   return {
     currentLevel: Number(value.currentLevel ?? value.level ?? 1),
     highestLevel: Number(value.highestLevel ?? Math.max(0, Number(value.level ?? 1) - 1)),
     completedRounds: Number(value.completedRounds ?? value.completed ?? 0),
     attemptedRounds: Number(value.attemptedRounds ?? value.completed ?? 0),
-    flowerCount: Number(value.flowerCount ?? value.flowers ?? 2),
+    flowerCount: savedFlowerItems.length,
     streakDays: Number(value.streakDays ?? value.streak ?? 0),
     lastPlayedDate: (value.lastPlayedDate ?? value.lastPlayed ?? null) as string | null,
     gardenLevel: Number(value.gardenLevel ?? 1),
@@ -56,13 +61,7 @@ export function normalizeGardenState(value: Partial<GardenState> & Record<string
     treeStages: typeof value.treeStages === 'object' && value.treeStages
       ? value.treeStages as Record<string, number>
       : { memoryTree: 1, familyTree: 1 },
-    flowerItems: Array.isArray(value.flowerItems)
-      ? value.flowerItems as GardenState['flowerItems']
-      : Array.from({ length: Number(value.flowerCount ?? value.flowers ?? 2) }, (_, index) => ({
-          id: `legacy-${index}`,
-          type: (['peach', 'daisy', 'bell'] as const)[index % 3],
-          earnedAt: '既有花朵',
-        })),
+    flowerItems: savedFlowerItems,
     pathStage: Number(value.pathStage ?? 1),
     playerAvatar: typeof value.playerAvatar === 'object' && value.playerAvatar
       ? value.playerAvatar as GardenState['playerAvatar']

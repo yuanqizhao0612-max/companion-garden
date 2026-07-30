@@ -10,6 +10,10 @@ import GardenScene from './GardenScene.vue'
 defineEmits<{ play: []; home: [] }>()
 const previewStage = ref<number | undefined>()
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
+const effectiveGardenStage = computed(() => previewStage.value ?? garden.gardenLevel)
+const visibleFlowerCount = computed(() => previewStage.value === undefined
+  ? garden.flowerItems.length
+  : [0, 3, 7, 12, 18][Math.max(0, Math.min(4, effectiveGardenStage.value - 1))])
 const bloomStage = computed(() => getBloomStage(garden.currentLevel))
 const bloomFlower = computed(() => getBloomFlower(garden.currentLevel))
 const nextGrowth = computed(() => {
@@ -32,7 +36,12 @@ function chooseAvatar(styleId: string) {
 
     <div class="garden-scene-card">
       <GardenScene :state="garden" :preview-stage="previewStage" />
-      <div class="scene-badge"><PhPlant weight="fill" /><span>成长第 {{ garden.gardenLevel }} 阶段</span></div>
+      <div class="scene-badge"><PhPlant weight="fill" /><span>成长第 {{ effectiveGardenStage }} 阶段</span></div>
+      <div class="scene-progress-note">
+        <PhFlower weight="fill" />
+        <span v-if="visibleFlowerCount">已经长出 {{ visibleFlowerCount }} 簇通关花</span>
+        <span v-else>完成第一关，这里会长出第一簇花</span>
+      </div>
     </div>
 
     <div class="growth-card companion-growth-card bloom-growth-card">
@@ -41,7 +50,7 @@ function chooseAvatar(styleId: string) {
     </div>
 
     <div class="garden-stats">
-      <div><span class="stat-icon flower"><PhFlower weight="fill" /></span><strong>{{ garden.flowerItems.length }}</strong><small>留下的花</small></div>
+      <div><span class="stat-icon flower"><PhFlower weight="fill" /></span><strong>{{ garden.flowerItems.length }}</strong><small>通关花簇</small></div>
       <div><span class="stat-icon house"><PhHouseLine weight="fill" /></span><strong>{{ garden.houseStage }}</strong><small>小屋阶段</small></div>
       <div><span class="stat-icon tree"><PhTree weight="fill" /></span><strong>{{ garden.streakDays }}</strong><small>相伴天数</small></div>
     </div>
