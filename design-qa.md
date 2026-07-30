@@ -1,67 +1,40 @@
-# 《陪伴花园》V0.5 修复与花园成长 QA
+# 《陪伴花园》V0.3 棋盘修复与花园成长 QA
 
-## 对比基准
+## 本轮验收范围
 
-- Source visual truth:
-  - `/Users/zhaokaixin/Downloads/花园风格分阶段设计图.png`
-  - `/Users/zhaokaixin/Desktop/陪伴花园/微信图片_20260729212225_487_219.jpg`
-  - `/var/folders/94/qszq6c4d62g45gpvd9sc6x880000gn/T/codex-clipboard-1b9fcd4f-6503-44ee-b5c5-456d765c7332.png`
-- Browser-rendered implementation screenshots:
-  - `artifacts/v05/game-mobile.png`
-  - `artifacts/v05/garden-empty-mobile-top.png`
-  - `artifacts/v05/garden-grown-mobile-top.png`
-- Combined comparison evidence:
-  - `artifacts/v05/comparison-empty-garden.png`
-  - `artifacts/v05/comparison-grown-garden.png`
+- 消除棋盘中的灰色不可移动图标。
+- 把横向、纵向特殊花的遮挡线改为清晰的方向徽标。
+- 验证四连会完整识别并移除四朵花，再生成特殊花。
+- 按 V0.3 任务书完成“闯关获得资源 → 照顾植物 → 植物成长 → 收藏入园”的闭环。
 
-## Capture normalization
+## 手机端真实点击结果
 
-- Browser: Codex in-app browser.
-- Browser viewport: 1280 × 720 CSS px, device scale factor 1.
-- Product shell: centered 520 CSS px mobile canvas.
-- Implementation screenshots: 520 × 1059 full game page; 520 × 720 garden first-screen captures.
-- Comparison panels: two equal 520 × 720 panels separated by a 16 px neutral gutter.
-- The source and implementation panels were resized with proportional cover crops; neither panel was stretched.
+- 浏览器：Codex 内置浏览器。
+- 产品画布：居中的 520 CSS px 手机画布。
+- 实测流程：首页 → 第 10/11 关 → 特殊花预览 → 通关 → 获得资源 → 进入花园 → 照顾种子 → 发芽。
+- 棋盘 DOM 验证：
+  - 灰色障碍块：0。
+  - 旧黄色横线/竖线标记：0。
+  - 新方向徽标：横向 1、纵向 1。
+- 通关资源：阳光 +30、水滴 +1、可照顾次数 +1。
+- 照顾消耗：阳光 -20、水滴 -1、可照顾次数 -1。
+- 照顾结果：植物由“种子”进入“发芽”。
 
-## Findings and fixes
+## 自动回归
 
-1. Pale-blue flower frames — resolved.
-   - Cause: the old covered-tile obstacle used a pale-blue `::after` frame without explaining the mechanic.
-   - Fix: removed the cover mechanic, level cover data, and frame styling.
-   - Browser audit: 36 tiles rendered; `.tile.covered` count 0; tile pseudo-frame count 0.
-2. Four-in-a-row visually clearing only three flowers — resolved.
-   - Cause: the reward-special anchor was removed from the clear set before the removal animation.
-   - Fix: every matched tile now completes the remove/collapse phase; the special reward is placed afterward at the anchor.
-   - Regression evidence: the four matched tile IDs all change before the special tile is created.
-3. Garden starting with flowers — resolved.
-   - Fresh state now contains 0 flower clusters.
-   - Each successful level adds exactly one cluster.
-   - Legacy welcome flowers are filtered during state normalization.
-4. Preview-stage label mismatch — resolved.
-   - Stage 1 now shows `成长第 1 阶段`, 0 flower overlays, and `完成第一关，这里会长出第一簇花`.
-   - Stage 5 shows `成长第 5 阶段`, 18 preview overlays, and matching progress copy.
+- 30 个关卡均不再配置无法解释的石块或覆盖框。
+- 4、5、6 连的匹配识别均覆盖。
+- 四连会先替换全部四个原棋子，再放置横向/纵向特殊花。
+- 新玩家初始花园为 0 株花。
+- 连续三次照顾完成“种子 → 发芽 → 生长 → 开花”，开花后才加入永久收藏。
+- 单次通关只发放资源，不会直接增加一株花。
+- `pnpm test`：5 个测试文件、34 项测试全部通过。
+- `pnpm build`：TypeScript 检查与 Vite 生产构建通过。
 
-## Visual fidelity
+## 截图证据
 
-- Empty-garden comparison preserves the supplied miniature 3D cottage, soft green hills, rounded trees, peach roof, blue sky, and a generous flower-free lawn.
-- Growth comparison extends the supplied tulip style into coral, yellow, cream, rose, and lavender clusters with matching soft 3D material and lighting.
-- Added clusters occupy the lawn without covering the cottage entrance or stage badge.
-- The game board retains large, shape-distinct flower pieces and no unexplained pale-blue overlays.
-
-## Interaction and runtime checks
-
-- Tested homepage → game → return → garden.
-- Tested development level selector and stage 1 / stage 5 garden previews.
-- Tested empty garden count (0) and grown preview count (18).
-- Tested no covered-tile DOM classes or pseudo-frame styling.
-- Browser console errors/warnings: none observed.
-- Automated regression suite: 32 tests passed.
-- Production build: passed.
-
-## Comparison history
-
-1. First implementation pass correctly showed 0 flowers in stage 1, but its badge still reflected the old saved stage 5.
-2. The badge and progress note were made preview-aware.
-3. The final browser capture shows stage 1 with an empty lawn and stage 5 with matching flower quantity and copy.
+- `artifacts/v06/game-special-mobile.png`
+- `artifacts/v06/result-resources-mobile.png`
+- `artifacts/v06/garden-care-mobile.png`
 
 final result: passed

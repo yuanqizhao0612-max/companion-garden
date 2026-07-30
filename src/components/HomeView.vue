@@ -9,6 +9,9 @@ defineEmits<{ start: []; garden: [] }>()
 const heroImage = publicAsset('assets/scenes/home-art-garden-v4.webp')
 const bloomStage = computed(() => getBloomStage(garden.currentLevel))
 const bloomFlower = computed(() => getBloomFlower(garden.currentLevel))
+const gardenHint = computed(() => garden.pendingCare
+  ? `有 ${garden.pendingCare} 次照顾正在等你`
+  : '完成一局，带回阳光和水滴')
 const greeting = computed(() => {
   const hour = new Date().getHours()
   if (hour < 11) return '早上好'
@@ -24,7 +27,7 @@ const greeting = computed(() => {
       <div class="welcome-copy">
         <p class="day-note"><PhSparkle weight="fill" />{{ greeting }}，花园一直在等你</p>
         <h2 id="welcome-title">今天，也来<br /><em>种一朵花</em>吧</h2>
-        <p>完成一局，让陪伴花再盛开一点。</p>
+        <p>完成一局，带回阳光和水滴，亲手照顾小院。</p>
       </div>
       <div class="companion-speech">
         <PhFlowerLotus weight="fill" />
@@ -50,7 +53,7 @@ const greeting = computed(() => {
 
     <button class="secondary-action garden-entry" @click="$emit('garden')">
       <span class="round-icon"><PhHouseLine weight="fill" /></span>
-      <span><strong>看看花园</strong><small>房屋、树木和小路正在慢慢长大</small></span>
+      <span><strong>看看花园</strong><small>{{ gardenHint }}</small></span>
       <PhArrowRight />
     </button>
 

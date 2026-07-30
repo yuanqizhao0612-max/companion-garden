@@ -12,6 +12,10 @@ export type GardenState = {
   houseStage: number
   treeStages: Record<string, number>
   flowerItems: Array<{ id: string; type: TileKind; earnedAt: string }>
+  sunlight: number
+  waterDrops: number
+  pendingCare: number
+  activePlantStage: 0 | 1 | 2 | 3
   pathStage: number
   playerAvatar: { styleId: string; position: string }
   familyMembers: Array<{ id: string; relation: string; styleId: string }>

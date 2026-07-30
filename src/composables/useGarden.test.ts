@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_GARDEN_STATE,
   applyAttempt,
+  applyPlantCare,
   applySuccess,
   loadGardenState,
   saveGardenState,
@@ -10,7 +11,7 @@ import {
 } from './useGarden'
 
 function freshState() {
-  return { ...DEFAULT_GARDEN_STATE }
+  return structuredClone(DEFAULT_GARDEN_STATE)
 }
 
 function memoryStorage(): StorageLike {
@@ -29,7 +30,9 @@ describe('garden progress', () => {
     expect(state.currentLevel).toBe(2)
     expect(state.highestLevel).toBe(1)
     expect(state.completedRounds).toBe(1)
-    expect(state.flowerCount).toBe(1)
+    expect(state.sunlight).toBe(30)
+    expect(state.waterDrops).toBe(1)
+    expect(state.pendingCare).toBe(1)
   })
 
   it('does not advance after an unfinished round', () => {
@@ -57,20 +60,36 @@ describe('garden progress', () => {
     expect(loadGardenState(storage)).toEqual(state)
   })
 
-  it('adds a lasting flower item after success', () => {
+  it('turns three care moments into one lasting flower', () => {
     const state = freshState()
-    applySuccess(state, 1, new Date(2026, 6, 27))
+    for (let level = 1; level <= 3; level += 1) {
+      applySuccess(state, level, new Date(2026, 6, 27))
+      expect(applyPlantCare(state, new Date(2026, 6, 27))).toBe(true)
+    }
     expect(state.flowerItems).toHaveLength(1)
     expect(state.flowerItems.at(-1)?.earnedAt).toBe('2026-07-27')
+    expect(state.activePlantStage).toBe(3)
   })
 
-  it('starts with an empty garden and adds exactly one flower cluster per success', () => {
+  it('starts with an empty garden and does not add flowers directly after success', () => {
     const state = freshState()
     expect(state.flowerItems).toHaveLength(0)
     applySuccess(state, 1, new Date(2026, 6, 27))
     applySuccess(state, 2, new Date(2026, 6, 27))
-    expect(state.flowerItems).toHaveLength(2)
-    expect(state.flowerCount).toBe(2)
+    expect(state.flowerItems).toHaveLength(0)
+    expect(state.flowerCount).toBe(0)
+    expect(state.pendingCare).toBe(2)
+  })
+
+  it('requires earned resources before a plant can grow', () => {
+    const state = freshState()
+    expect(applyPlantCare(state, new Date(2026, 6, 27))).toBe(false)
+    expect(state.activePlantStage).toBe(0)
+    applySuccess(state, 1, new Date(2026, 6, 27))
+    expect(applyPlantCare(state, new Date(2026, 6, 27))).toBe(true)
+    expect(state.activePlantStage).toBe(1)
+    expect(state.sunlight).toBe(10)
+    expect(state.waterDrops).toBe(0)
   })
 
   it('grows the house, trees and path gradually', () => {

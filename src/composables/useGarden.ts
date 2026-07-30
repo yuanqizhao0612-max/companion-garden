@@ -19,6 +19,10 @@ export const DEFAULT_GARDEN_STATE: GardenState = {
   houseStage: 1,
   treeStages: { memoryTree: 1, familyTree: 1 },
   flowerItems: [],
+  sunlight: 0,
+  waterDrops: 0,
+  pendingCare: 0,
+  activePlantStage: 0,
   pathStage: 1,
   playerAvatar: { styleId: 'coral', position: 'door' },
   familyMembers: [],
@@ -62,6 +66,10 @@ export function normalizeGardenState(value: Partial<GardenState> & Record<string
       ? value.treeStages as Record<string, number>
       : { memoryTree: 1, familyTree: 1 },
     flowerItems: savedFlowerItems,
+    sunlight: Math.max(0, Number(value.sunlight ?? 0)),
+    waterDrops: Math.max(0, Number(value.waterDrops ?? 0)),
+    pendingCare: Math.max(0, Number(value.pendingCare ?? 0)),
+    activePlantStage: Math.max(0, Math.min(3, Number(value.activePlantStage ?? 0))) as GardenState['activePlantStage'],
     pathStage: Number(value.pathStage ?? 1),
     playerAvatar: typeof value.playerAvatar === 'object' && value.playerAvatar
       ? value.playerAvatar as GardenState['playerAvatar']
@@ -105,19 +113,42 @@ export function applySuccess(state: GardenState, completedLevel: number, now = n
   state.completedRounds += 1
   state.highestLevel = Math.max(state.highestLevel, completedLevel)
   state.currentLevel = Math.max(state.currentLevel, completedLevel + 1)
-  state.flowerCount += 1
-  state.flowerItems = [...state.flowerItems, {
-    id: `flower-${completedLevel}-${state.completedRounds}`,
-    type: (['peach', 'daisy', 'bell'] as const)[state.completedRounds % 3],
-    earnedAt: dateKey(now),
-  }]
-  state.gardenLevel = Math.min(5, 1 + Math.floor(state.completedRounds / 2))
+  state.sunlight += 30
+  state.waterDrops += 1
+  state.pendingCare += 1
+  state.gardenLevel = Math.min(5, 1 + Math.floor(state.flowerItems.length / 2))
   state.houseStage = Math.min(3, 1 + Math.floor(state.completedRounds / 4))
   state.treeStages = {
     memoryTree: Math.min(3, 1 + Math.floor(state.completedRounds / 3)),
     familyTree: Math.min(3, 1 + Math.floor(state.streakDays / 3)),
   }
   state.pathStage = Math.min(3, 1 + Math.floor(state.highestLevel / 4))
+}
+
+export function applyPlantCare(state: GardenState, now = new Date()) {
+  if (state.pendingCare < 1 || state.sunlight < 20 || state.waterDrops < 1) return false
+
+  state.pendingCare -= 1
+  state.sunlight -= 20
+  state.waterDrops -= 1
+
+  if (state.activePlantStage === 3) {
+    state.activePlantStage = 1
+  } else {
+    state.activePlantStage = (state.activePlantStage + 1) as GardenState['activePlantStage']
+  }
+
+  if (state.activePlantStage === 3) {
+    state.flowerItems = [...state.flowerItems, {
+      id: `flower-${state.highestLevel}-${state.completedRounds}-${state.flowerItems.length + 1}`,
+      type: (['peach', 'daisy', 'bell'] as const)[state.flowerItems.length % 3],
+      earnedAt: dateKey(now),
+    }]
+    state.flowerCount = state.flowerItems.length
+  }
+
+  state.gardenLevel = Math.min(5, 1 + Math.floor((state.flowerItems.length + state.activePlantStage) / 2))
+  return true
 }
 
 export function applyAttempt(state: GardenState, now = new Date()) {
@@ -137,6 +168,10 @@ export function recordSuccess(completedLevel: number) {
 
 export function recordAttempt() {
   applyAttempt(garden)
+}
+
+export function careForGarden() {
+  return applyPlantCare(garden)
 }
 
 export function resetTrialData() {

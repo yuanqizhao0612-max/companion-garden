@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
-  PhArrowRight, PhFlower, PhHouseLine, PhPath, PhPlant, PhTree, PhUserCircle,
+  PhArrowRight, PhDrop, PhFlower, PhHouseLine, PhPath, PhPlant, PhSparkle,
+  PhSun, PhTree, PhUserCircle,
 } from '@phosphor-icons/vue'
-import { garden } from '../composables/useGarden'
-import { getBloomFlower, getBloomStage } from '../data'
+import { careForGarden, garden } from '../composables/useGarden'
+import { getBloomFlower, getBloomStage, publicAsset, TILE_META } from '../data'
 import GardenScene from './GardenScene.vue'
 
 defineEmits<{ play: []; home: [] }>()
 const previewStage = ref<number | undefined>()
+const growthAnimationKey = ref(0)
 const isDevPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
 const effectiveGardenStage = computed(() => previewStage.value ?? garden.gardenLevel)
 const visibleFlowerCount = computed(() => previewStage.value === undefined
@@ -16,6 +18,14 @@ const visibleFlowerCount = computed(() => previewStage.value === undefined
   : [0, 3, 7, 12, 18][Math.max(0, Math.min(4, effectiveGardenStage.value - 1))])
 const bloomStage = computed(() => getBloomStage(garden.currentLevel))
 const bloomFlower = computed(() => getBloomFlower(garden.currentLevel))
+const plantStages = [
+  { name: '种子', note: '一颗种子正在小院里安静等待', asset: publicAsset('assets/growth-v03/seed-v03.png') },
+  { name: '发芽', note: '嫩芽已经探出头，今天照顾得很好', asset: publicAsset('assets/growth-v03/sprout-v03.png') },
+  { name: '生长', note: '花苞正在长大，再照顾一次就会开放', asset: publicAsset('assets/growth-v03/bud-v03.png') },
+  { name: '开花', note: '这株花已经盛开，并留进了你的收藏', asset: publicAsset('assets/growth-v03/bloom-v03.png') },
+]
+const activePlant = computed(() => plantStages[garden.activePlantStage])
+const canCare = computed(() => garden.pendingCare > 0 && garden.sunlight >= 20 && garden.waterDrops >= 1)
 const nextGrowth = computed(() => {
   if (bloomStage.value >= 5) return '谢谢你一直陪着它，花已经完全盛开'
   const nextLevel = bloomStage.value * 6 + 1
@@ -24,6 +34,11 @@ const nextGrowth = computed(() => {
 
 function chooseAvatar(styleId: string) {
   garden.playerAvatar = { ...garden.playerAvatar, styleId }
+}
+
+function careForPlant() {
+  if (!careForGarden()) return
+  growthAnimationKey.value += 1
 }
 </script>
 
@@ -35,14 +50,43 @@ function chooseAvatar(styleId: string) {
     </div>
 
     <div class="garden-scene-card">
-      <GardenScene :state="garden" :preview-stage="previewStage" />
+      <GardenScene :state="garden" :preview-stage="previewStage" :growth-key="growthAnimationKey" />
       <div class="scene-badge"><PhPlant weight="fill" /><span>成长第 {{ effectiveGardenStage }} 阶段</span></div>
       <div class="scene-progress-note">
         <PhFlower weight="fill" />
         <span v-if="visibleFlowerCount">已经长出 {{ visibleFlowerCount }} 簇通关花</span>
+        <span v-else-if="garden.pendingCare">阳光和水滴已经带回，照顾第一颗种子吧</span>
         <span v-else>完成第一关，这里会长出第一簇花</span>
       </div>
     </div>
+
+    <section class="plant-care-card" aria-labelledby="plant-care-title">
+      <div class="plant-care-main">
+        <span class="plant-stage-art"><img :src="activePlant.asset" alt="" /></span>
+        <div>
+          <small>正在照顾 · {{ activePlant.name }}阶段</small>
+          <h3 id="plant-care-title">{{ activePlant.note }}</h3>
+        </div>
+      </div>
+
+      <div class="growth-steps" aria-label="种子成长阶段">
+        <span v-for="(item, index) in plantStages" :key="item.name" :class="{ active: index <= garden.activePlantStage }">
+          <i>{{ index + 1 }}</i><b>{{ item.name }}</b>
+        </span>
+      </div>
+
+      <div class="garden-resources">
+        <span><PhSun weight="fill" /><b>{{ garden.sunlight }}</b><small>阳光</small></span>
+        <span><PhDrop weight="fill" /><b>{{ garden.waterDrops }}</b><small>水滴</small></span>
+        <span><PhSparkle weight="fill" /><b>{{ garden.pendingCare }}</b><small>可照顾</small></span>
+      </div>
+
+      <button class="care-action" :disabled="!canCare" @click="careForPlant">
+        <template v-if="canCare"><PhPlant weight="fill" /><span>用 20 阳光和 1 水滴照顾它</span></template>
+        <template v-else-if="garden.pendingCare"><PhSun weight="fill" /><span>再收集一点成长资源</span></template>
+        <template v-else><PhFlower weight="fill" /><span>完成一关，带回阳光和水滴</span></template>
+      </button>
+    </section>
 
     <div class="growth-card companion-growth-card bloom-growth-card">
       <span class="companion-medallion"><img :src="bloomFlower" :alt="`陪伴花第 ${bloomStage} 阶段`" /></span>
@@ -54,6 +98,19 @@ function chooseAvatar(styleId: string) {
       <div><span class="stat-icon house"><PhHouseLine weight="fill" /></span><strong>{{ garden.houseStage }}</strong><small>小屋阶段</small></div>
       <div><span class="stat-icon tree"><PhTree weight="fill" /></span><strong>{{ garden.streakDays }}</strong><small>相伴天数</small></div>
     </div>
+
+    <section class="plant-collection" aria-labelledby="collection-title">
+      <div class="section-heading">
+        <span><PhFlower weight="duotone" /></span>
+        <div><small>每一株都记得你的照顾</small><h3 id="collection-title">植物收藏 · {{ garden.flowerItems.length }}</h3></div>
+      </div>
+      <div v-if="garden.flowerItems.length" class="collection-row">
+        <span v-for="flower in garden.flowerItems.slice(-6)" :key="flower.id">
+          <img :src="TILE_META[flower.type].image" :alt="`${TILE_META[flower.type].name}，收藏于 ${flower.earnedAt}`" />
+        </span>
+      </div>
+      <p v-else class="empty-collection">第一株花正在小院里慢慢长大。</p>
+    </section>
 
     <section class="avatar-picker" aria-labelledby="avatar-title">
       <div class="section-heading">

@@ -6,4 +6,8 @@ describe('V0.2 level configuration', () => {
     expect(LEVELS).toHaveLength(30)
     expect(getLevelConfig(10).goals).toEqual({ peach: 32, leaf: 32, berry: 24 })
   })
+
+  it('keeps every V0.3 board free of unexplained immovable tiles', () => {
+    expect(LEVELS.every((level) => level.obstacles.length === 0 && level.covers.length === 0)).toBe(true)
+  })
 })

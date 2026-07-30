@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import {
-  PhArrowRight, PhArrowUUpLeft, PhFlowerTulip, PhHouseLine, PhLightbulb,
-  PhPersonSimpleWalk, PhShuffleAngular, PhStar, PhTarget,
+  PhArrowRight, PhArrowUUpLeft, PhArrowsOutLineHorizontal, PhArrowsOutLineVertical,
+  PhDrop, PhFlowerLotus, PhHouseLine, PhLightbulb, PhPersonSimpleWalk, PhShuffleAngular,
+  PhSparkle, PhStar, PhTarget,
 } from '@phosphor-icons/vue'
 import { getBloomFlower, getBloomStage, publicAsset, TILE_META, WARM_WORDS } from '../data'
 import { garden, recordAttempt, recordSuccess } from '../composables/useGarden'
 import { useMatchGame } from '../composables/useMatchGame'
+import type { Tile } from '../types'
 
 const emit = defineEmits<{ home: []; garden: [] }>()
 const playedLevel = ref(garden.currentLevel)
@@ -20,6 +22,12 @@ const successFlower = computed(() => getBloomFlower(playedLevel.value))
 const successBloomStage = computed(() => getBloomStage(playedLevel.value))
 const retryFlower = TILE_META.berry.image
 const bloomSpirit = publicAsset('assets/effects/bloom-spirit-v3.png')
+const specialMeta: Record<NonNullable<Tile['special']>, { name: string; icon: typeof PhSparkle }> = {
+  'stripe-row': { name: '横向柔光花', icon: PhArrowsOutLineHorizontal },
+  'stripe-column': { name: '纵向柔光花', icon: PhArrowsOutLineVertical },
+  rainbow: { name: '彩虹花', icon: PhSparkle },
+  bouquet: { name: '花束花', icon: PhFlowerLotus },
+}
 
 watch(game.status, (status) => {
   if (status === 'playing' || resultRecorded.value) return
@@ -44,6 +52,15 @@ function previewWin() {
 function previewLoss() {
   game.moves.value = 0
   game.status.value = 'journeyComplete'
+}
+
+function previewSpecials() {
+  game.board.value = game.board.value.map((tile, index) => {
+    if (index === 14) return { ...tile, special: 'stripe-row' }
+    if (index === 15) return { ...tile, special: 'stripe-column' }
+    return tile
+  })
+  game.message.value = '特别花用方向图标提示效果，不再遮住花朵'
 }
 </script>
 
@@ -117,12 +134,14 @@ function previewLoss() {
             }
           ]"
           :data-kind="tile.kind"
-          :aria-label="tile.obstacle ? `石块，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列` : `${TILE_META[tile.kind].name}，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列`"
+          :aria-label="tile.obstacle ? `石块，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列` : `${TILE_META[tile.kind].name}${tile.special ? `，${specialMeta[tile.special].name}` : ''}，第 ${Math.floor(index / 6) + 1} 行第 ${(index % 6) + 1} 列`"
           @click="game.choose(index)"
         >
-          <span v-if="tile.obstacle" class="stone-piece" aria-hidden="true"><PhFlowerTulip weight="fill" /></span>
+          <span v-if="tile.obstacle" class="stone-piece" aria-hidden="true"></span>
           <img v-else :src="TILE_META[tile.kind].image" alt="" draggable="false" />
-          <i v-if="tile.special" class="special-mark" aria-hidden="true"></i>
+          <span v-if="tile.special" class="special-badge" aria-hidden="true">
+            <component :is="specialMeta[tile.special].icon" weight="bold" />
+          </span>
         </button>
       </div>
     </div>
@@ -139,6 +158,7 @@ function previewLoss() {
           <option v-for="n in 30" :key="n" :value="n">第 {{ n }} 关</option>
         </select>
       </label>
+      <button type="button" @click="previewSpecials">特别花预览</button>
       <button type="button" @click="previewWin">通关预览</button>
       <button type="button" @click="previewLoss">未通关预览</button>
     </div>
@@ -150,6 +170,11 @@ function previewLoss() {
           <p class="result-kicker">陪伴花 · 第 {{ successBloomStage }} 阶段</p>
           <h2 id="win-title">花瓣又打开了一点</h2>
           <p>{{ warmWord }}，第 {{ playedLevel }} 关的心意已经留下。</p>
+          <div class="result-resources" aria-label="本关获得的成长资源">
+            <span><PhStar weight="fill" /><b>+30</b><small>阳光</small></span>
+            <span><PhDrop weight="fill" /><b>+1</b><small>水滴</small></span>
+          </div>
+          <p class="result-resource-note">带回花园，亲手照顾正在长大的植物。</p>
           <span v-if="newHighest" class="new-record"><PhStar weight="fill" />新的最高纪录</span>
           <button class="primary-action compact" @click="startLevel(garden.currentLevel)">下一关<PhArrowRight /></button>
           <button class="secondary-result" @click="emit('garden')"><PhHouseLine weight="fill" />看看花园</button>
